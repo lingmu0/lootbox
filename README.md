@@ -1,4 +1,4 @@
-# 战利品箱（NeoForge 1.20.1）
+# 战利品箱（Forge 1.20.1）
 
 所有箱子都是同一个 `lootbox:loot_box` 物品，箱子类型存放在物品 NBT 的 `loot_box_id` 字段中。示例：
 
