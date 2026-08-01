@@ -1,10 +1,10 @@
 {
-  "display_name": "普通奖励箱",
+  "display_name_key": "lootbox.box.common",
   "color": "#FFFFFF",
   "rolls": 1,
   "entries": [
     { "item": "minecraft:iron_ingot", "min": 2, "max": 8, "weight": 50 },
     { "item": "minecraft:gold_ingot", "min": 1, "max": 4, "weight": 25, "luck_weight": 2 },
-    { "item": "minecraft:diamond", "min": 1, "max": 1, "weight": 2, "luck_weight": 1, "condition": { "type": "luck", "min": 2, "display": "幸运 ≥ 2" } }
+    { "item": "minecraft:diamond", "min": 1, "max": 1, "weight": 2, "luck_weight": 1, "condition": { "type": "luck", "min": 2 } }
   ]
 }

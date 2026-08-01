@@ -9,15 +9,15 @@
 
 ## 数据包定义
 
-每个箱子可选 `color` 字段，支持 `#RRGGBB` 或整数颜色值，用于给原版箱子贴图染色。
+每个箱子可选 `color` 字段，支持 `#RRGGBB` 或整数颜色值，用于给贴图染色。
 
-在 `data/<命名空间>/loot_boxes/<id>.json` 中声明 `display_name`、`rolls` 和 `entries`。每个 entry 支持：
+在 `data/<命名空间>/loot_boxes/<id>.json` 中声明 `display_name_key`（翻译键；也兼容直接文本的 `display_name`）、`rolls` 和 `entries`。每个 entry 支持：
 
 * `item`、`min`、`max`：物品 ID 和数量范围；
 * `weight`：基础权重；
 * `luck_weight`：最终权重会加上 `玩家幸运 × luck_weight`；
 * `condition: {"type":"luck","min":2}`：内置幸运条件；
-* `condition: {"type":"custom","id":"has_tag","display":"需要 VIP"}` 可由 KJS 注册并提供自定义显示；其他 `condition.type` 也可直接使用已注册的条件 ID。
+* `condition: {"type":"custom","id":"has_tag","display":"需要 VIP"}` 可由 KJS 注册并提供自定义显示；也可以使用 `display_key` 指定翻译键；其他 `condition.type` 也可直接使用已注册的条件 ID。
 
 ## KJS 接口
 

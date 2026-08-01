@@ -18,6 +18,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -71,7 +72,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         @Override public Component getTitle() { return Component.translatable("jei.lootbox.loot_box"); }
         @Override public IDrawable getIcon() { return icon; }
         @Override public int getWidth() { return 180; }
-        @Override public int getHeight() { return 115; }
+        @Override public int getHeight() { return 126; }
 
         @Override
         public void setRecipe(IRecipeLayoutBuilder builder, LootBoxJeiRecipe recipe, IFocusGroup focuses) {
@@ -88,9 +89,9 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                     tooltip.add(Component.translatable("jei.lootbox.weight", formatNumber(entry.weight())));
                     tooltip.add(Component.translatable("jei.lootbox.luck_weight", formatNumber(entry.luckWeight())));
                     tooltip.add(Component.translatable("jei.lootbox.final_probability", formatProbability(recipe, entry)));
-                    Component condition = entry.conditionText().isBlank()
+                    Component condition = entry.conditionComponent().getString().isBlank()
                             ? Component.translatable("jei.lootbox.condition.none")
-                            : Component.literal(entry.conditionText());
+                            : entry.conditionComponent();
                     tooltip.add(Component.translatable("jei.lootbox.condition", condition));
                 });
                 index++;
@@ -101,7 +102,11 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         public void draw(LootBoxJeiRecipe recipe, IRecipeSlotsView slots, GuiGraphics graphics, double mouseX, double mouseY) {
             var font = Minecraft.getInstance().font;
             graphics.drawString(font, Component.translatable("tooltip.lootbox.loot_box_rolls", recipe.rolls()), 4, 91, 0x404040, false);
-            graphics.drawString(font, Component.translatable("jei.lootbox.loot_box_hint", formatNumber(currentLuck())), 4, 103, 0x777777, false);
+            List<FormattedCharSequence> hintLines = font.split(
+                    Component.translatable("jei.lootbox.loot_box_hint", formatNumber(currentLuck())), getWidth() - 8);
+            for (int line = 0; line < hintLines.size(); line++) {
+                graphics.drawString(font, hintLines.get(line), 4, 103 + line * font.lineHeight, 0x777777, false);
+            }
         }
 
         private static String quantityText(LootBoxDefinition.Entry entry) {
@@ -123,16 +128,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         }
 
         private static boolean availableAtLuck(LootBoxDefinition.Entry entry, float luck) {
-            String text = entry.conditionText();
-            String prefix = "幸运 ≥ ";
-            if (text.startsWith(prefix)) {
-                try {
-                    return luck >= Float.parseFloat(text.substring(prefix.length()).trim());
-                } catch (NumberFormatException ignored) {
-                    return true;
-                }
-            }
-            return true;
+            return entry.luckMinimum() == null || luck >= entry.luckMinimum();
         }
 
         private static String formatProbability(LootBoxJeiRecipe recipe, LootBoxDefinition.Entry entry) {

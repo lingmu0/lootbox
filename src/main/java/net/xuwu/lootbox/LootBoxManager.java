@@ -32,14 +32,16 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
         LootBoxCondition luckTwo = context -> context.luck() >= 2;
         ResourceLocation common = ResourceLocation.fromNamespaceAndPath(LootBoxMod.MODID, "common");
         ResourceLocation rare = ResourceLocation.fromNamespaceAndPath(LootBoxMod.MODID, "rare");
-        DEFINITIONS.put(common, new LootBoxDefinition(common, Component.literal("普通奖励箱"), 1, List.of(
+        DEFINITIONS.put(common, new LootBoxDefinition(common, Component.translatable("lootbox.box.common"), 1, List.of(
                 new LootBoxDefinition.Entry(new ItemStack(Items.IRON_INGOT), 2, 8, 50, 0, always, ""),
                 new LootBoxDefinition.Entry(new ItemStack(Items.GOLD_INGOT), 1, 4, 25, 2, always, ""),
-                new LootBoxDefinition.Entry(new ItemStack(Items.DIAMOND), 1, 1, 2, 1, luckTwo, "幸运 ≥ 2")), 0xFFFFFF));
-        DEFINITIONS.put(rare, new LootBoxDefinition(rare, Component.literal("稀有奖励箱"), 2, List.of(
+                new LootBoxDefinition.Entry(new ItemStack(Items.DIAMOND), 1, 1, 2, 1, luckTwo,
+                        Component.translatable("condition.lootbox.luck", formatNumber(2.0F)), 2.0F)), 0xFFFFFF));
+        DEFINITIONS.put(rare, new LootBoxDefinition(rare, Component.translatable("lootbox.box.rare"), 2, List.of(
                 new LootBoxDefinition.Entry(new ItemStack(Items.EMERALD), 2, 8, 35, 3, always, ""),
                 new LootBoxDefinition.Entry(new ItemStack(Items.DIAMOND), 1, 3, 12, 2, always, ""),
-                new LootBoxDefinition.Entry(new ItemStack(Items.NETHERITE_SCRAP), 1, 1, 1, 1, context -> context.luck() >= 3, "幸运 ≥ 3")), 0x7C4DFF));
+                new LootBoxDefinition.Entry(new ItemStack(Items.NETHERITE_SCRAP), 1, 1, 1, 1, context -> context.luck() >= 3,
+                        Component.translatable("condition.lootbox.luck", formatNumber(3.0F)), 3.0F)), 0x7C4DFF));
     }
 
     public LootBoxManager() {
@@ -73,7 +75,9 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
     }
 
     private static LootBoxDefinition parse(ResourceLocation id, JsonObject root) {
-        String name = GsonHelper.getAsString(root, "display_name", id.getPath());
+        Component name = root.has("display_name_key")
+                ? Component.translatable(GsonHelper.getAsString(root, "display_name_key"))
+                : Component.literal(GsonHelper.getAsString(root, "display_name", id.getPath()));
         int rolls = GsonHelper.getAsInt(root, "rolls", 1);
         int color = parseColor(root.get("color"));
         List<LootBoxDefinition.Entry> entries = new ArrayList<>();
@@ -92,7 +96,8 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                 double luckWeight = GsonHelper.getAsDouble(json, "luck_weight", 0.0D);
                 JsonObject conditionJson = json.has("condition") ? GsonHelper.getAsJsonObject(json, "condition") : null;
                 LootBoxCondition condition = LootBoxApi.condition("always");
-                String conditionText = "";
+                Component conditionText = Component.empty();
+                Float luckMinimum = null;
                 if (conditionJson != null) {
                     String type = GsonHelper.getAsString(conditionJson, "type", "always");
                     if ("custom".equals(type)) {
@@ -101,23 +106,34 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                     condition = LootBoxApi.condition(type);
                     if (condition == null) {
                         condition = context -> false;
-                        conditionText = "未知条件: " + type;
+                        conditionText = Component.translatable("condition.lootbox.unknown", type);
                     } else if ("luck".equals(type)) {
                         float minimum = GsonHelper.getAsFloat(conditionJson, "min", 0.0F);
                         condition = new LootBoxCondition() {
                             @Override public boolean test(LootBoxContext context) { return context.luck() >= minimum; }
-                            @Override public String description(LootBoxContext context) { return "幸运 ≥ " + minimum; }
+                            @Override public String description(LootBoxContext context) {
+                                return Component.translatable("condition.lootbox.luck", formatNumber(minimum)).getString();
+                            }
                         };
-                        conditionText = "幸运 ≥ " + minimum;
+                        conditionText = Component.translatable("condition.lootbox.luck", formatNumber(minimum));
+                        luckMinimum = minimum;
                     } else {
-                        conditionText = conditionJson.has("display") ? GsonHelper.getAsString(conditionJson, "display") : "";
+                        conditionText = conditionJson.has("display_key")
+                                ? Component.translatable(GsonHelper.getAsString(conditionJson, "display_key"))
+                                : conditionJson.has("display")
+                                ? Component.literal(GsonHelper.getAsString(conditionJson, "display"))
+                                : Component.empty();
                     }
                 }
                 entries.add(new LootBoxDefinition.Entry(new ItemStack(item), min, max, weight, luckWeight,
-                        condition, conditionText));
+                        condition, conditionText, luckMinimum));
             }
         }
-        return new LootBoxDefinition(id, Component.literal(name), rolls, entries, color);
+        return new LootBoxDefinition(id, name, rolls, entries, color);
+    }
+
+    private static String formatNumber(float value) {
+        return value == (int) value ? Integer.toString((int) value) : Float.toString(value);
     }
 
     private static int parseColor(JsonElement element) {

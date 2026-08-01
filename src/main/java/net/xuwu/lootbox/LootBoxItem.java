@@ -82,7 +82,8 @@ public class LootBoxItem extends Item {
             json.putInt("max", entry.max());
             json.putDouble("weight", entry.weight());
             json.putDouble("luck_weight", entry.luckWeight());
-            json.putString("condition", entry.conditionText());
+            json.putString("condition", entry.conditionComponent().getString());
+            if (entry.luckMinimum() != null) json.putFloat("luck_minimum", entry.luckMinimum());
             entries.add(json);
         }
         snapshot.put("entries", entries);
@@ -96,9 +97,15 @@ public class LootBoxItem extends Item {
             CompoundTag entry = (CompoundTag) value;
             var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(entry.getString("item")));
             if (item == null) continue;
+            Component conditionText = entry.contains("luck_minimum", Tag.TAG_FLOAT)
+                    ? Component.translatable("condition.lootbox.luck", entry.getFloat("luck_minimum"))
+                    : entry.getString("condition").isBlank()
+                    ? Component.empty()
+                    : Component.literal(entry.getString("condition"));
+            Float luckMinimum = entry.contains("luck_minimum", Tag.TAG_FLOAT) ? entry.getFloat("luck_minimum") : null;
             entries.add(new LootBoxDefinition.Entry(new ItemStack(item), entry.getInt("min"), entry.getInt("max"),
                     entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
-                    entry.getString("condition")));
+                    conditionText, luckMinimum));
         }
         return new LootBoxDefinition(id, Component.literal(snapshot.getString("name")), snapshot.getInt("rolls"), entries,
                 snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF);
@@ -176,7 +183,9 @@ public class LootBoxItem extends Item {
                     .append("  ")
                     .append(Component.translatable("tooltip.lootbox.probability", probabilityText(definition, entry)));
             tooltip.add(line.withStyle(ChatFormatting.DARK_GRAY));
-            if (!entry.conditionText().isBlank()) tooltip.add(Component.literal("  " + entry.conditionText()).withStyle(ChatFormatting.YELLOW));
+            if (!entry.conditionComponent().getString().isBlank()) {
+                tooltip.add(Component.literal("  ").append(entry.conditionComponent()).withStyle(ChatFormatting.YELLOW));
+            }
         }
     }
 
@@ -202,17 +211,10 @@ public class LootBoxItem extends Item {
     }
 
     private static boolean availableAtLuck(LootBoxDefinition.Entry entry, float luck) {
-        String prefix = "幸运 ≥ ";
-        String text = entry.conditionText();
-        if (!text.startsWith(prefix)) return true;
-        try {
-            return luck >= Float.parseFloat(text.substring(prefix.length()).trim());
-        } catch (NumberFormatException ignored) {
-            return true;
-        }
+        return entry.luckMinimum() == null || luck >= entry.luckMinimum();
     }
 
     private static boolean isUnknownCondition(LootBoxDefinition.Entry entry) {
-        return !entry.conditionText().isBlank() && !entry.conditionText().startsWith("幸运 ≥ ");
+        return !entry.conditionComponent().getString().isBlank() && entry.luckMinimum() == null;
     }
 }

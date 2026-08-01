@@ -19,13 +19,32 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
     }
 
     public record Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
-                        LootBoxCondition condition, String conditionText) {
+                        LootBoxCondition condition, String conditionText, Component conditionComponent, Float luckMinimum) {
+        public Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
+                     LootBoxCondition condition, String conditionText) {
+            this(stack, min, max, weight, luckWeight, condition,
+                    conditionText, conditionText == null || conditionText.isBlank() ? Component.empty() : Component.literal(conditionText), null);
+        }
+
+        public Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
+                     LootBoxCondition condition, Component conditionText) {
+            this(stack, min, max, weight, luckWeight, condition,
+                    conditionText == null ? "" : conditionText.getString(), conditionText, null);
+        }
+
+        public Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
+                     LootBoxCondition condition, Component conditionText, Float luckMinimum) {
+            this(stack, min, max, weight, luckWeight, condition,
+                    conditionText == null ? "" : conditionText.getString(), conditionText, luckMinimum);
+        }
+
         public Entry {
             min = Math.max(1, min);
             max = Math.max(min, max);
             weight = Math.max(0, weight);
             luckWeight = Math.max(0, luckWeight);
             conditionText = conditionText == null ? "" : conditionText;
+            conditionComponent = conditionComponent == null ? Component.empty() : conditionComponent;
         }
 
         public ItemStack createStack(java.util.Random random) {

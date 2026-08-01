@@ -28,7 +28,9 @@ public final class LootBoxApi {
         builtinConditionsRegistered = true;
         CONDITIONS.put("luck", new LootBoxCondition() {
             @Override public boolean test(LootBoxContext context) { return context.luck() >= 0; }
-            @Override public String description(LootBoxContext context) { return context == null ? "" : "幸运 ≥ " + context.luck(); }
+            @Override public String description(LootBoxContext context) {
+                return context == null ? "" : Component.translatable("condition.lootbox.luck", context.luck()).getString();
+            }
         });
         CONDITIONS.put("always", context -> true);
     }

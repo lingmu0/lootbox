@@ -1,10 +1,10 @@
 {
-  "display_name": "稀有奖励箱",
+  "display_name_key": "lootbox.box.rare",
   "color": "#7C4DFF",
   "rolls": 2,
   "entries": [
     { "item": "minecraft:emerald", "min": 2, "max": 8, "weight": 35, "luck_weight": 3 },
     { "item": "minecraft:diamond", "min": 1, "max": 3, "weight": 12, "luck_weight": 2 },
-    { "item": "minecraft:netherite_scrap", "min": 1, "max": 1, "weight": 1, "luck_weight": 1, "condition": { "type": "luck", "min": 3, "display": "幸运 ≥ 3" } }
+    { "item": "minecraft:netherite_scrap", "min": 1, "max": 1, "weight": 1, "luck_weight": 1, "condition": { "type": "luck", "min": 3 } }
   ]
 }
