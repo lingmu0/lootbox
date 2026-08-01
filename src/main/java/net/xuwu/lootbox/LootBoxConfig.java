@@ -1,29 +1,29 @@
 package net.xuwu.lootbox;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 /** 服务端战利品箱掉落配置。配置文件位于世界的 serverconfig/lootbox-server.toml。 */
 public final class LootBoxConfig {
-    public static final ModConfigSpec COMMON_SPEC;
-    public static final ModConfigSpec SPEC;
-    public static final ModConfigSpec.BooleanValue HIDE_DEFAULT_BOXES;
-    public static final ModConfigSpec.BooleanValue MOB_DROPS_ENABLED;
-    public static final ModConfigSpec.DoubleValue COMMON_DROP_CHANCE;
-    public static final ModConfigSpec.DoubleValue RARE_DROP_CHANCE;
-    public static final ModConfigSpec.DoubleValue UNUSUAL_DROP_CHANCE;
-    public static final ModConfigSpec.DoubleValue EPIC_DROP_CHANCE;
-    public static final ModConfigSpec.DoubleValue LEGENDARY_DROP_CHANCE;
-    public static final ModConfigSpec.DoubleValue ENDURANCE_DROP_CHANCE;
+    public static final ForgeConfigSpec COMMON_SPEC;
+    public static final ForgeConfigSpec SPEC;
+    public static final ForgeConfigSpec.BooleanValue HIDE_DEFAULT_BOXES;
+    public static final ForgeConfigSpec.BooleanValue MOB_DROPS_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue COMMON_DROP_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue RARE_DROP_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue UNUSUAL_DROP_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue EPIC_DROP_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue LEGENDARY_DROP_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue ENDURANCE_DROP_CHANCE;
 
     static {
-        ModConfigSpec.Builder commonBuilder = new ModConfigSpec.Builder();
+        ForgeConfigSpec.Builder commonBuilder = new ForgeConfigSpec.Builder();
         HIDE_DEFAULT_BOXES = commonBuilder
                 .comment("Whether the built-in loot boxes are hidden from the creative tab and JEI.")
                 .translation("config.lootbox.hide_default_boxes")
                 .define("hide_default_boxes", false);
         COMMON_SPEC = commonBuilder.build();
 
-        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         MOB_DROPS_ENABLED = builder
                 .comment("Whether mobs killed by a player can drop loot boxes.")
                 .translation("config.lootbox.mob_drops_enabled")
@@ -44,8 +44,8 @@ public final class LootBoxConfig {
 
     private LootBoxConfig() {}
 
-    private static ModConfigSpec.DoubleValue chance(ModConfigSpec.Builder builder, String path,
-                                                     String translationKey, double defaultValue) {
+    private static ForgeConfigSpec.DoubleValue chance(ForgeConfigSpec.Builder builder, String path,
+                                                      String translationKey, double defaultValue) {
         return builder.comment("Default: " + defaultValue + " (" + (defaultValue * 100.0D) + "%).")
                 .translation(translationKey)
                 .defineInRange(path, defaultValue, 0.0D, 1.0D);

@@ -59,7 +59,7 @@ public class LootBoxOpenerBlockEntity extends BlockEntity implements WorldlyCont
             if (existing.isEmpty()) {
                 items.set(slot, remaining.copy());
                 remaining = ItemStack.EMPTY;
-            } else if (ItemStack.isSameItemSameComponents(existing, remaining)
+            } else if (ItemStack.isSameItemSameTags(existing, remaining)
                     && existing.getCount() < existing.getMaxStackSize()) {
                 int moved = Math.min(remaining.getCount(), existing.getMaxStackSize() - existing.getCount());
                 existing.grow(moved);
@@ -75,16 +75,16 @@ public class LootBoxOpenerBlockEntity extends BlockEntity implements WorldlyCont
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        ContainerHelper.saveAllItems(tag, items, registries);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
+        ContainerHelper.saveAllItems(tag, items);
         if (owner != null) tag.putUUID("Owner", owner);
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        ContainerHelper.loadAllItems(tag, items, registries);
+    public void load(CompoundTag tag) {
+        super.load(tag);
+        ContainerHelper.loadAllItems(tag, items);
         owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
     }
 
@@ -93,7 +93,7 @@ public class LootBoxOpenerBlockEntity extends BlockEntity implements WorldlyCont
     @Override public ItemStack getItem(int slot) { return items.get(slot); }
     @Override public ItemStack removeItem(int slot, int amount) { ItemStack result = ContainerHelper.removeItem(items, slot, amount); if (!result.isEmpty()) setChanged(); return result; }
     @Override public ItemStack removeItemNoUpdate(int slot) { return ContainerHelper.takeItem(items, slot); }
-    @Override public void setItem(int slot, ItemStack stack) { items.set(slot, stack); stack.limitSize(getMaxStackSize(stack)); setChanged(); }
+    @Override public void setItem(int slot, ItemStack stack) { items.set(slot, stack); stack.setCount(Math.min(stack.getCount(), getMaxStackSize())); setChanged(); }
     @Override public void setChanged() { super.setChanged(); }
     @Override public boolean stillValid(Player player) { return level != null && level.getBlockEntity(worldPosition) == this && player.distanceToSqr(worldPosition.getCenter()) <= 64.0D; }
     @Override public void clearContent() { items.clear(); setChanged(); }

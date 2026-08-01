@@ -79,7 +79,7 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
     }
 
     private static ResourceLocation boxId(String path) {
-        return ResourceLocation.fromNamespaceAndPath(LootBoxMod.MODID, path);
+        return new ResourceLocation(LootBoxMod.MODID, path);
     }
 
     private static List<LootBoxDefinition.Entry> optionalEntries(String tier, LootBoxDefinition.Entry... entries) {
@@ -140,7 +140,7 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                 } else if (json.has("tag")) {
                     String tagId = GsonHelper.getAsString(json, "tag");
                     if (tagId.startsWith("#")) tagId = tagId.substring(1);
-                    TagKey<Item> tag = TagKey.create(Registries.ITEM, ResourceLocation.parse(tagId));
+                    TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(tagId));
                     HolderSet.Named<Item> taggedItems = BuiltInRegistries.ITEM.getTag(tag).orElse(null);
                     if (taggedItems == null || taggedItems.size() == 0) {
                         LootBoxMod.LOGGER.warn("Loot box {} references missing or empty item tag {}", id, tag);
@@ -148,7 +148,7 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                     }
                     stacks = taggedItems.stream().map(holder -> new ItemStack(holder.value())).toList();
                 } else {
-                    ResourceLocation itemId = ResourceLocation.parse(GsonHelper.getAsString(json, "item"));
+                    ResourceLocation itemId = new ResourceLocation(GsonHelper.getAsString(json, "item"));
                     Item item = BuiltInRegistries.ITEM.get(itemId);
                     if (item == null || item == Items.AIR) {
                         LootBoxMod.LOGGER.warn("Loot box {} references missing item {}", id, itemId);

@@ -87,7 +87,7 @@ public final class LootBoxOptionalRewards {
     }
 
     private static OptionalReward reward(String tier, String itemId, int min, int max, double weight) {
-        return new OptionalReward(tier, ResourceLocation.parse(itemId), min, max, weight);
+        return new OptionalReward(tier, new ResourceLocation(itemId), min, max, weight);
     }
 
     private record OptionalReward(String tier, ResourceLocation itemId, int min, int max, double weight) {}

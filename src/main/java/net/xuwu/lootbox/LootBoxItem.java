@@ -1,7 +1,6 @@
 package net.xuwu.lootbox;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -14,18 +13,17 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-/** 所有奖励箱共用的物品；箱子类型存储在 CUSTOM_DATA 组件中。 */
+/** 所有奖励箱共用的物品；箱子类型存储在 ItemStack NBT 中。 */
 public class LootBoxItem extends Item {
     public static final String BOX_ID = "loot_box_id";
     private static final String SNAPSHOT = "loot_box_snapshot";
@@ -37,44 +35,42 @@ public class LootBoxItem extends Item {
 
     public static ItemStack createStack(String id) {
         ItemStack stack = createReferenceStack(id);
-        ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
+        ResourceLocation location = new ResourceLocation(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
         LootBoxDefinition definition = LootBoxApi.getDefinition(location);
         if (definition != null) {
-            CompoundTag tag = stack.get(DataComponents.CUSTOM_DATA).copyTag();
+            CompoundTag tag = stack.getOrCreateTag();
             tag.put(SNAPSHOT, snapshot(definition));
-            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         }
         return stack;
     }
 
     public static ItemStack createReferenceStack(String id) {
         ItemStack stack = new ItemStack(LootBoxMod.LOOT_BOX.get());
-        ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
+        ResourceLocation location = new ResourceLocation(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
         CompoundTag tag = new CompoundTag();
         tag.putString(BOX_ID, location.toString());
-        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        stack.setTag(tag);
         return stack;
     }
 
     public static ResourceLocation getDefinitionId(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        if (data == null) return ResourceLocation.fromNamespaceAndPath(LootBoxMod.MODID, "common");
-        CompoundTag tag = data.copyTag();
+        CompoundTag tag = stack.getTag();
+        if (tag == null) return new ResourceLocation(LootBoxMod.MODID, "common");
         String id = tag.getString(BOX_ID);
-        if (id.isBlank()) return ResourceLocation.fromNamespaceAndPath(LootBoxMod.MODID, "common");
+        if (id.isBlank()) return new ResourceLocation(LootBoxMod.MODID, "common");
         try {
-            return ResourceLocation.parse(id);
+            return new ResourceLocation(id);
         } catch (IllegalArgumentException ignored) {
-            return ResourceLocation.fromNamespaceAndPath(LootBoxMod.MODID, "common");
+            return new ResourceLocation(LootBoxMod.MODID, "common");
         }
     }
 
     public static LootBoxDefinition getDefinition(ItemStack stack) {
         LootBoxDefinition definition = LootBoxApi.getDefinition(getDefinitionId(stack));
         if (definition != null) return definition;
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        CompoundTag data = stack.getTag();
         if (data == null) return null;
-        CompoundTag snapshot = data.copyTag().getCompound(SNAPSHOT);
+        CompoundTag snapshot = data.getCompound(SNAPSHOT);
         if (snapshot.isEmpty()) return null;
         return fromSnapshot(getDefinitionId(stack), snapshot);
     }
@@ -123,12 +119,12 @@ public class LootBoxItem extends Item {
             } else if (entry.contains("items", Tag.TAG_LIST)) {
                 for (Tag itemValue : entry.getList("items", Tag.TAG_COMPOUND)) {
                     CompoundTag itemTag = (CompoundTag) itemValue;
-                    var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemTag.getString("id")));
+                    var item = BuiltInRegistries.ITEM.get(new ResourceLocation(itemTag.getString("id")));
                     if (item != null && item != net.minecraft.world.item.Items.AIR) stacks.add(new ItemStack(item));
                 }
                 if (stacks.isEmpty()) continue;
             } else {
-                var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(entry.getString("item")));
+                var item = BuiltInRegistries.ITEM.get(new ResourceLocation(entry.getString("item")));
                 if (item == null || item == net.minecraft.world.item.Items.AIR) continue;
                 stacks.add(new ItemStack(item));
             }
@@ -203,7 +199,7 @@ public class LootBoxItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
         LootBoxDefinition definition = getDefinition(stack);
         if (definition == null) {
             tooltip.add(Component.translatable("tooltip.lootbox.loot_box_unknown").withStyle(ChatFormatting.GRAY));

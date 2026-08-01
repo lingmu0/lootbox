@@ -58,7 +58,7 @@ public final class LootBoxApi {
 
     /** 注册箱子并使用 RGB 色值给原版箱子贴图染色，例如 0x7C4DFF。 */
     public static void register(String id, String displayName, int rolls, List<LootBoxDefinition.Entry> entries, int color) {
-        ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
+        ResourceLocation location = new ResourceLocation(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
         SCRIPT_DEFINITIONS.put(location, new LootBoxDefinition(location, Component.literal(displayName), rolls, entries, color));
     }
 
@@ -74,7 +74,7 @@ public final class LootBoxApi {
     /** 方便 KJS 构建奖励项的工厂，组件可由脚本在返回的 ItemStack 上继续设置。 */
     public static LootBoxDefinition.Entry entry(String itemId, int min, int max, double weight,
                                                  double luckWeight, String conditionId, String conditionText) {
-        ResourceLocation id = ResourceLocation.parse(itemId);
+        ResourceLocation id = new ResourceLocation(itemId);
         var item = BuiltInRegistries.ITEM.get(id);
         if (item == Items.AIR) item = Items.BARRIER;
         LootBoxCondition condition = conditionId == null || conditionId.isBlank()
@@ -93,7 +93,7 @@ public final class LootBoxApi {
     public static LootBoxDefinition.Entry entryTag(String tagId, int min, int max, double weight,
                                                     double luckWeight, String conditionId, String conditionText) {
         String normalizedTagId = tagId != null && tagId.startsWith("#") ? tagId.substring(1) : tagId;
-        TagKey<Item> tag = TagKey.create(Registries.ITEM, ResourceLocation.parse(normalizedTagId));
+        TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(normalizedTagId));
         HolderSet.Named<Item> taggedItems = BuiltInRegistries.ITEM.getTag(tag).orElse(null);
         List<ItemStack> stacks = taggedItems == null
                 ? List.of(new ItemStack(Items.BARRIER))

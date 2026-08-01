@@ -7,7 +7,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.damagesource.DamageSource;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 
 import java.util.List;
 
@@ -52,9 +52,9 @@ public final class LootBoxMobDrops {
         return null;
     }
 
-    private record DropRule(ResourceLocation id, net.neoforged.neoforge.common.ModConfigSpec.DoubleValue chance) {
-        private DropRule(String id, net.neoforged.neoforge.common.ModConfigSpec.DoubleValue chance) {
-            this(ResourceLocation.parse(id), chance);
+    private record DropRule(ResourceLocation id, net.minecraftforge.common.ForgeConfigSpec.DoubleValue chance) {
+        private DropRule(String id, net.minecraftforge.common.ForgeConfigSpec.DoubleValue chance) {
+            this(new ResourceLocation(id), chance);
         }
     }
 }

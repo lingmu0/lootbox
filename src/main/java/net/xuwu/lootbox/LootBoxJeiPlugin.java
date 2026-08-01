@@ -32,19 +32,13 @@ public final class LootBoxJeiPlugin implements IModPlugin {
 
     @Override
     public ResourceLocation getPluginUid() {
-        return ResourceLocation.fromNamespaceAndPath(LootBoxMod.MODID, "jei_plugin");
+        return new ResourceLocation(LootBoxMod.MODID, "jei_plugin");
     }
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registration) {
-        registration.registerSubtypeInterpreter(LootBoxMod.LOOT_BOX.get(), new mezz.jei.api.ingredients.subtypes.ISubtypeInterpreter<>() {
-            @Override public Object getSubtypeData(ItemStack stack, UidContext context) {
-                return LootBoxItem.getDefinitionId(stack).toString();
-            }
-            @Override public String getLegacyStringSubtypeInfo(ItemStack stack, UidContext context) {
-                return LootBoxItem.getDefinitionId(stack).toString();
-            }
-        });
+        registration.registerSubtypeInterpreter(LootBoxMod.LOOT_BOX.get(),
+                (stack, context) -> LootBoxItem.getDefinitionId(stack).toString());
     }
 
     @Override
