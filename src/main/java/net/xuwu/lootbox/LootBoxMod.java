@@ -15,6 +15,7 @@ import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -32,6 +33,10 @@ import org.slf4j.Logger;
 public class LootBoxMod {
     public static final String MODID = "lootbox";
     public static final Logger LOGGER = LogUtils.getLogger();
+    private static final String[] DEFAULT_BOXES = {
+            "lootbox:common", "lootbox:unusual", "lootbox:rare",
+            "lootbox:epic", "lootbox:legendary", "lootbox:endurance"
+    };
 
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
@@ -57,12 +62,15 @@ public class LootBoxMod {
                     .withTabsBefore(CreativeModeTabs.FUNCTIONAL_BLOCKS)
                     .icon(() -> LootBoxItem.createStack("lootbox:common"))
                     .displayItems((parameters, output) -> {
-                        output.accept(LootBoxItem.createStack("lootbox:common"));
-                        output.accept(LootBoxItem.createStack("lootbox:rare"));
+                        if (!LootBoxConfig.HIDE_DEFAULT_BOXES.get()) {
+                            for (String boxId : DEFAULT_BOXES) output.accept(LootBoxItem.createStack(boxId));
+                        }
                         output.accept(LOOT_BOX_OPENER_ITEM);
                     }).build());
 
     public LootBoxMod(IEventBus modBus, ModContainer modContainer) {
+        modContainer.registerConfig(ModConfig.Type.COMMON, LootBoxConfig.COMMON_SPEC);
+        modContainer.registerConfig(ModConfig.Type.SERVER, LootBoxConfig.SPEC);
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
@@ -90,5 +98,10 @@ public class LootBoxMod {
     @SubscribeEvent
     public void registerCommands(RegisterCommandsEvent event) {
         LootBoxCommands.register(event.getDispatcher());
+    }
+
+    @SubscribeEvent
+    public void onLivingDeath(net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) {
+        LootBoxMobDrops.handle(event);
     }
 }

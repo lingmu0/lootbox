@@ -55,6 +55,8 @@ public final class LootBoxJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
         List<LootBoxJeiRecipe> recipes = LootBoxManager.definitions().values().stream()
+                .filter(definition -> !LootBoxConfig.HIDE_DEFAULT_BOXES.get()
+                        || !LootBoxManager.isDefaultBox(definition.id()))
                 .map(definition -> new LootBoxJeiRecipe(
                         LootBoxItem.createStack(definition.id().toString()), definition.rolls(), definition.entries()))
                 .toList();
@@ -133,6 +135,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
 
         private static String formatProbability(LootBoxJeiRecipe recipe, LootBoxDefinition.Entry entry) {
             float luck = currentLuck();
+            if (!availableAtLuck(entry, luck)) return "0.00%";
             double total = recipe.entries().stream()
                     .filter(candidate -> availableAtLuck(candidate, luck))
                     .mapToDouble(candidate -> effectiveWeight(candidate, luck))

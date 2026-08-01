@@ -7,6 +7,8 @@
 /lootbox give @s lootbox:rare 3
 ```
 
+内置箱子等级顺序为：`common`、`unusual`、`rare`、`epic`、`legendary`、`endurance`。耐力奖励箱有 99.99% 概率再次获得耐力奖励箱；剩余 0.01% 中，80% 为 100 个钻石块，20% 为 100 个绿宝石块。
+
 ## 数据包定义
 
 每个箱子可选 `color` 字段，支持 `#RRGGBB` 或整数颜色值，用于给贴图染色。
@@ -14,10 +16,20 @@
 在 `data/<命名空间>/loot_boxes/<id>.json` 中声明 `display_name_key`（翻译键；也兼容直接文本的 `display_name`）、`rolls` 和 `entries`。每个 entry 支持：
 
 * `item`、`min`、`max`：物品 ID 和数量范围；
+* `tag`：物品标签 ID，例如 `{"tag":"minecraft:music_discs","weight":10}`；标签中的物品会等概率随机抽取，且该条目的总权重仍为 `10`；`item`、`tag`、`box` 三者选其一；
+* `box`：将另一个战利品箱作为奖励，例如 `{"box":"lootbox:endurance","weight":99990}`；
 * `weight`：基础权重；
 * `luck_weight`：最终权重会加上 `玩家幸运 × luck_weight`；
 * `condition: {"type":"luck","min":2}`：内置幸运条件；
 * `condition: {"type":"custom","id":"has_tag","display":"需要 VIP"}` 可由 KJS 注册并提供自定义显示；也可以使用 `display_key` 指定翻译键；其他 `condition.type` 也可直接使用已注册的条件 ID。
+
+内置奖励池还会尝试加入 Mekanism、Create、Iron's Spells 'n Spellbooks、Goety、Applied Energistics 2、Terra Entity、The Twilight Forest 和 The Aether 的代表性物品。它们只通过注册表 ID 查找；对应模组未安装或物品 ID 不存在时会自动跳过，不会产生硬依赖。
+
+## 配置
+
+* `config/lootbox-common.toml` 的 `hide_default_boxes`：隐藏内置奖励箱，同时从本模组创造物品栏和 JEI 中移除；默认 `false`。
+* 世界 `serverconfig/lootbox-server.toml` 的 `mob_drops_enabled`：开关玩家击杀生物掉落奖励箱；默认 `true`。
+* 同一文件的 `mob_drop_chances`：分别配置六种箱子的掉落概率，默认值为普通 `0.05`、不寻常 `0.02`、稀有 `0.01`、史诗 `0.005`、传奇 `0.001`、耐力 `0.0001`。每次击杀最多掉落一个，按耐力、传奇、史诗、稀有、不寻常、普通的顺序判定。
 
 ## KJS 接口
 
@@ -28,6 +40,14 @@ const LootBoxApi = Java.loadClass('net.xuwu.lootbox.LootBoxApi')
 LootBoxApi.registerCondition('has_tag', ctx => ctx.hasPlayer() && ctx.player().getTags().contains('vip'), ctx => '需要 VIP')
 LootBoxApi.register('my_pack:vip', 'VIP 奖励箱', 1, LootBoxApi.entries(
     LootBoxApi.entry('minecraft:diamond', 1, 2, 10, 2, 'has_tag', '需要 VIP')
+))
+```
+
+KJS 也支持标签奖励；标签内物品等概率随机抽取：
+
+```js
+LootBoxApi.register('my_pack:tag_rewards', '标签奖励箱', 1, LootBoxApi.entries(
+    LootBoxApi.entryTag('minecraft:music_discs', 1, 1, 10, 0, '', '')
 ))
 ```
 

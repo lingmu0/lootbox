@@ -1,8 +1,12 @@
 package net.xuwu.lootbox;
 
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -81,10 +85,25 @@ public final class LootBoxApi {
 
     public static LootBoxDefinition.Entry entry(ItemStack stack, int min, int max, double weight,
                                                  double luckWeight, String conditionId, String conditionText) {
-        LootBoxCondition condition = conditionId == null || conditionId.isBlank()
-                ? LootBoxApi.condition("always") : LootBoxApi.condition(conditionId);
-        if (condition == null) condition = context -> false;
+        LootBoxCondition condition = resolveCondition(conditionId);
         return new LootBoxDefinition.Entry(stack.copy(), min, max, weight, luckWeight, condition, conditionText);
+    }
+
+    /** Creates a reward that randomly selects one item from the tag with equal probability. */
+    public static LootBoxDefinition.Entry entryTag(String tagId, int min, int max, double weight,
+                                                    double luckWeight, String conditionId, String conditionText) {
+        String normalizedTagId = tagId != null && tagId.startsWith("#") ? tagId.substring(1) : tagId;
+        TagKey<Item> tag = TagKey.create(Registries.ITEM, ResourceLocation.parse(normalizedTagId));
+        HolderSet.Named<Item> taggedItems = BuiltInRegistries.ITEM.getTag(tag).orElse(null);
+        List<ItemStack> stacks = taggedItems == null
+                ? List.of(new ItemStack(Items.BARRIER))
+                : taggedItems.stream().map(holder -> new ItemStack(holder.value())).toList();
+        if (stacks.isEmpty()) stacks = List.of(new ItemStack(Items.BARRIER));
+        if (taggedItems == null || taggedItems.size() == 0) {
+            LootBoxMod.LOGGER.warn("KJS loot box entry references missing or empty item tag {}", tag);
+        }
+        return new LootBoxDefinition.Entry(stacks, min, max, weight, luckWeight,
+                resolveCondition(conditionId), conditionText == null ? Component.empty() : Component.literal(conditionText), null);
     }
 
     public static List<LootBoxDefinition.Entry> entries(LootBoxDefinition.Entry... entries) {
@@ -93,6 +112,12 @@ public final class LootBoxApi {
 
     static Map<ResourceLocation, LootBoxDefinition> scriptedDefinitions() {
         return Map.copyOf(SCRIPT_DEFINITIONS);
+    }
+
+    private static LootBoxCondition resolveCondition(String conditionId) {
+        LootBoxCondition condition = conditionId == null || conditionId.isBlank()
+                ? LootBoxApi.condition("always") : LootBoxApi.condition(conditionId);
+        return condition == null ? context -> false : condition;
     }
 
     private static void registerBuiltinConditionsGuard() {

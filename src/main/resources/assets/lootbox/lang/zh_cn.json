@@ -12,6 +12,10 @@
   "commands.lootbox.give": "已给予 %s 个 %s 给 %s",
   "lootbox.box.common": "普通奖励箱",
   "lootbox.box.rare": "稀有奖励箱",
+  "lootbox.box.unusual": "不寻常奖励箱",
+  "lootbox.box.epic": "史诗奖励箱",
+  "lootbox.box.legendary": "传奇奖励箱",
+  "lootbox.box.endurance": "耐力奖励箱",
   "condition.lootbox.luck": "幸运 ≥ %s",
   "condition.lootbox.unknown": "未知条件：%s",
   "jei.lootbox.loot_box": "战利品箱奖励",
@@ -21,5 +25,13 @@
   "jei.lootbox.luck_weight": "幸运权重：%s",
   "jei.lootbox.final_probability": "最终概率：%s",
   "jei.lootbox.condition": "条件：%s",
-  "jei.lootbox.condition.none": "无"
+  "jei.lootbox.condition.none": "无",
+  "config.lootbox.hide_default_boxes": "隐藏内置奖励箱",
+  "config.lootbox.mob_drops_enabled": "启用生物掉落战利品箱",
+  "config.lootbox.common_drop_chance": "普通奖励箱掉落概率",
+  "config.lootbox.rare_drop_chance": "稀有奖励箱掉落概率",
+  "config.lootbox.unusual_drop_chance": "不寻常奖励箱掉落概率",
+  "config.lootbox.epic_drop_chance": "史诗奖励箱掉落概率",
+  "config.lootbox.legendary_drop_chance": "传奇奖励箱掉落概率",
+  "config.lootbox.endurance_drop_chance": "耐力奖励箱掉落概率"
 }

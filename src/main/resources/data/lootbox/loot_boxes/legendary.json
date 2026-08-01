@@ -1,0 +1,12 @@
+{
+  "display_name_key": "lootbox.box.legendary",
+  "color": "#FFB300",
+  "rolls": 1,
+  "entries": [
+    { "item": "minecraft:diamond_block", "min": 1, "max": 3, "weight": 25 },
+    { "item": "minecraft:emerald_block", "min": 1, "max": 3, "weight": 15 },
+    { "item": "minecraft:netherite_ingot", "min": 1, "max": 2, "weight": 8 },
+    { "item": "minecraft:enchanted_golden_apple", "min": 1, "max": 1, "weight": 1 },
+    { "item": "minecraft:elytra", "min": 1, "max": 1, "weight": 0.25 }
+  ]
+}

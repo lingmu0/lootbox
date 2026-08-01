@@ -12,6 +12,10 @@
   "commands.lootbox.give": "Gave %s %s to %s",
   "lootbox.box.common": "Common Reward Box",
   "lootbox.box.rare": "Rare Reward Box",
+  "lootbox.box.unusual": "Unusual Reward Box",
+  "lootbox.box.epic": "Epic Reward Box",
+  "lootbox.box.legendary": "Legendary Reward Box",
+  "lootbox.box.endurance": "Endurance Reward Box",
   "condition.lootbox.luck": "Luck ≥ %s",
   "condition.lootbox.unknown": "Unknown condition: %s",
   "jei.lootbox.loot_box": "Loot Box Rewards",
@@ -21,5 +25,13 @@
   "jei.lootbox.luck_weight": "Luck weight: %s",
   "jei.lootbox.final_probability": "Final chance: %s",
   "jei.lootbox.condition": "Condition: %s",
-  "jei.lootbox.condition.none": "None"
+  "jei.lootbox.condition.none": "None",
+  "config.lootbox.hide_default_boxes": "Hide built-in loot boxes",
+  "config.lootbox.mob_drops_enabled": "Enable mob loot box drops",
+  "config.lootbox.common_drop_chance": "Common loot box drop chance",
+  "config.lootbox.rare_drop_chance": "Rare loot box drop chance",
+  "config.lootbox.unusual_drop_chance": "Unusual loot box drop chance",
+  "config.lootbox.epic_drop_chance": "Epic loot box drop chance",
+  "config.lootbox.legendary_drop_chance": "Legendary loot box drop chance",
+  "config.lootbox.endurance_drop_chance": "Endurance loot box drop chance"
 }

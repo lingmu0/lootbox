@@ -36,12 +36,22 @@ public class LootBoxItem extends Item {
     }
 
     public static ItemStack createStack(String id) {
+        ItemStack stack = createReferenceStack(id);
+        ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
+        LootBoxDefinition definition = LootBoxApi.getDefinition(location);
+        if (definition != null) {
+            CompoundTag tag = stack.get(DataComponents.CUSTOM_DATA).copyTag();
+            tag.put(SNAPSHOT, snapshot(definition));
+            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        }
+        return stack;
+    }
+
+    public static ItemStack createReferenceStack(String id) {
         ItemStack stack = new ItemStack(LootBoxMod.LOOT_BOX.get());
         ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
         CompoundTag tag = new CompoundTag();
         tag.putString(BOX_ID, location.toString());
-        LootBoxDefinition definition = LootBoxApi.getDefinition(location);
-        if (definition != null) tag.put(SNAPSHOT, snapshot(definition));
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         return stack;
     }
@@ -77,7 +87,19 @@ public class LootBoxItem extends Item {
         ListTag entries = new ListTag();
         for (LootBoxDefinition.Entry entry : definition.entries()) {
             CompoundTag json = new CompoundTag();
-            json.putString("item", BuiltInRegistries.ITEM.getKey(entry.stack().getItem()).toString());
+            if (entry.stack().getItem() instanceof LootBoxItem) {
+                json.putString("box", getDefinitionId(entry.stack()).toString());
+            } else if (entry.possibleStacks().size() > 1) {
+                ListTag items = new ListTag();
+                for (ItemStack possible : entry.possibleStacks()) {
+                    CompoundTag item = new CompoundTag();
+                    item.putString("id", BuiltInRegistries.ITEM.getKey(possible.getItem()).toString());
+                    items.add(item);
+                }
+                json.put("items", items);
+            } else {
+                json.putString("item", BuiltInRegistries.ITEM.getKey(entry.stack().getItem()).toString());
+            }
             json.putInt("min", entry.min());
             json.putInt("max", entry.max());
             json.putDouble("weight", entry.weight());
@@ -95,15 +117,28 @@ public class LootBoxItem extends Item {
         ListTag list = snapshot.getList("entries", Tag.TAG_COMPOUND);
         for (Tag value : list) {
             CompoundTag entry = (CompoundTag) value;
-            var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(entry.getString("item")));
-            if (item == null) continue;
+            List<ItemStack> stacks = new ArrayList<>();
+            if (entry.contains("box", Tag.TAG_STRING)) {
+                stacks.add(createReferenceStack(entry.getString("box")));
+            } else if (entry.contains("items", Tag.TAG_LIST)) {
+                for (Tag itemValue : entry.getList("items", Tag.TAG_COMPOUND)) {
+                    CompoundTag itemTag = (CompoundTag) itemValue;
+                    var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemTag.getString("id")));
+                    if (item != null && item != net.minecraft.world.item.Items.AIR) stacks.add(new ItemStack(item));
+                }
+                if (stacks.isEmpty()) continue;
+            } else {
+                var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(entry.getString("item")));
+                if (item == null || item == net.minecraft.world.item.Items.AIR) continue;
+                stacks.add(new ItemStack(item));
+            }
             Component conditionText = entry.contains("luck_minimum", Tag.TAG_FLOAT)
                     ? Component.translatable("condition.lootbox.luck", entry.getFloat("luck_minimum"))
                     : entry.getString("condition").isBlank()
                     ? Component.empty()
                     : Component.literal(entry.getString("condition"));
             Float luckMinimum = entry.contains("luck_minimum", Tag.TAG_FLOAT) ? entry.getFloat("luck_minimum") : null;
-            entries.add(new LootBoxDefinition.Entry(new ItemStack(item), entry.getInt("min"), entry.getInt("max"),
+            entries.add(new LootBoxDefinition.Entry(stacks, entry.getInt("min"), entry.getInt("max"),
                     entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
                     conditionText, luckMinimum));
         }
