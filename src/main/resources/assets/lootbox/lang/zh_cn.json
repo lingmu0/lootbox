@@ -26,6 +26,8 @@
   "jei.lootbox.final_probability": "最终概率：%s",
   "jei.lootbox.condition": "条件：%s",
   "jei.lootbox.condition.none": "无",
+  "jei.lootbox.info.mob_drop": "玩家击杀生物时有概率掉落",
+  "jei.lootbox.info.drop_chance": "配置掉落概率：%s",
   "config.lootbox.hide_default_boxes": "隐藏内置奖励箱",
   "config.lootbox.mob_drops_enabled": "启用生物掉落战利品箱",
   "config.lootbox.common_drop_chance": "普通奖励箱掉落概率",

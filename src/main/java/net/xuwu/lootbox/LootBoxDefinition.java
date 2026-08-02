@@ -14,13 +14,18 @@ import java.util.List;
 
 /** 一个可被物品组件引用的奖励箱定义。 */
 public record LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries, int color,
-                                String displayNameKey) {
+                                String displayNameKey, List<Component> jeiInfo) {
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries) {
-        this(id, displayName, rolls, entries, 0xFFFFFF, null);
+        this(id, displayName, rolls, entries, 0xFFFFFF, null, List.of());
     }
 
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries, int color) {
-        this(id, displayName, rolls, entries, color, null);
+        this(id, displayName, rolls, entries, color, null, List.of());
+    }
+
+    public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries,
+                             int color, String displayNameKey) {
+        this(id, displayName, rolls, entries, color, displayNameKey, List.of());
     }
 
     public LootBoxDefinition {
@@ -28,6 +33,7 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
         entries = List.copyOf(entries);
         color &= 0xFFFFFF;
         displayNameKey = displayNameKey == null || displayNameKey.isBlank() ? null : displayNameKey;
+        jeiInfo = jeiInfo == null ? List.of() : List.copyOf(jeiInfo);
     }
 
         public record Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
