@@ -29,7 +29,7 @@
 ## 配置
 
 * `config/lootbox-common.toml` 的 `hide_default_boxes`：隐藏内置奖励箱，同时从本模组创造物品栏和 JEI 中移除；默认 `false`。
-* 世界 `serverconfig/lootbox-server.toml` 的 `mob_drops_enabled`：开关玩家击杀生物掉落奖励箱；默认 `true`。
+* `config/lootbox-common.toml` 的 `mob_drops_enabled`：开关玩家击杀生物掉落奖励箱；默认 `true`。
 * 同一文件中的 `enable_mekanism_rewards`、`enable_create_rewards`、`enable_irons_spellbooks_rewards`、`enable_goety_rewards`、`enable_ae2_rewards`、`enable_terra_entity_rewards`、`enable_twilight_forest_rewards` 和 `enable_aether_rewards`：分别开关对应模组的内置奖励池；默认均为 `true`。未安装对应模组时仍会自动跳过。
 * 同一文件的 `mob_drop_chances`：分别配置六种箱子的掉落概率，默认值为普通 `0.05`、不寻常 `0.02`、稀有 `0.01`、史诗 `0.005`、传奇 `0.001`、耐力 `0.0001`。每次击杀最多掉落一个，按耐力、传奇、史诗、稀有、不寻常、普通的顺序判定。
 

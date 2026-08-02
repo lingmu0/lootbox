@@ -65,7 +65,6 @@ public class LootBoxMod {
 
     public LootBoxMod(IEventBus modBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, LootBoxConfig.COMMON_SPEC);
-        modContainer.registerConfig(ModConfig.Type.SERVER, LootBoxConfig.SPEC);
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
