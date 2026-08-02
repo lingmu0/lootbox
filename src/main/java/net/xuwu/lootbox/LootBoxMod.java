@@ -67,7 +67,6 @@ public class LootBoxMod {
     public LootBoxMod() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, LootBoxConfig.COMMON_SPEC);
-        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, LootBoxConfig.SPEC);
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         BLOCK_ENTITIES.register(modBus);

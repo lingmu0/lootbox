@@ -88,22 +88,17 @@ public final class LootBoxOptionalRewards {
     }
 
     private static boolean isIntegrationEnabled(String modId) {
-        try {
-            return switch (modId) {
-                case "mekanism" -> LootBoxConfig.ENABLE_MEKANISM_REWARDS.get();
-                case "create" -> LootBoxConfig.ENABLE_CREATE_REWARDS.get();
-                case "irons_spellbooks" -> LootBoxConfig.ENABLE_IRONS_SPELLBOOKS_REWARDS.get();
-                case "goety" -> LootBoxConfig.ENABLE_GOETY_REWARDS.get();
-                case "ae2" -> LootBoxConfig.ENABLE_AE2_REWARDS.get();
-                case "terra_entity" -> LootBoxConfig.ENABLE_TERRA_ENTITY_REWARDS.get();
-                case "twilightforest" -> LootBoxConfig.ENABLE_TWILIGHT_FOREST_REWARDS.get();
-                case "aether" -> LootBoxConfig.ENABLE_AETHER_REWARDS.get();
-                default -> true;
-            };
-        } catch (IllegalStateException configNotLoaded) {
-            // Built-in definitions are initialized before the server config is loaded.
-            return true;
-        }
+        return switch (modId) {
+            case "mekanism" -> LootBoxConfig.ENABLE_MEKANISM_REWARDS.get();
+            case "create" -> LootBoxConfig.ENABLE_CREATE_REWARDS.get();
+            case "irons_spellbooks" -> LootBoxConfig.ENABLE_IRONS_SPELLBOOKS_REWARDS.get();
+            case "goety" -> LootBoxConfig.ENABLE_GOETY_REWARDS.get();
+            case "ae2" -> LootBoxConfig.ENABLE_AE2_REWARDS.get();
+            case "terra_entity" -> LootBoxConfig.ENABLE_TERRA_ENTITY_REWARDS.get();
+            case "twilightforest" -> LootBoxConfig.ENABLE_TWILIGHT_FOREST_REWARDS.get();
+            case "aether" -> LootBoxConfig.ENABLE_AETHER_REWARDS.get();
+            default -> true;
+        };
     }
 
     private static OptionalReward reward(String tier, String itemId, int min, int max, double weight) {

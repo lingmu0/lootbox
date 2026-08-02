@@ -5,7 +5,6 @@ import net.minecraftforge.common.ForgeConfigSpec;
 /** 服务端战利品箱掉落配置。配置文件位于世界的 serverconfig/lootbox-server.toml。 */
 public final class LootBoxConfig {
     public static final ForgeConfigSpec COMMON_SPEC;
-    public static final ForgeConfigSpec SPEC;
     public static final ForgeConfigSpec.BooleanValue HIDE_DEFAULT_BOXES;
     public static final ForgeConfigSpec.BooleanValue ENABLE_MEKANISM_REWARDS;
     public static final ForgeConfigSpec.BooleanValue ENABLE_CREATE_REWARDS;
@@ -24,14 +23,11 @@ public final class LootBoxConfig {
     public static final ForgeConfigSpec.DoubleValue ENDURANCE_DROP_CHANCE;
 
     static {
-        ForgeConfigSpec.Builder commonBuilder = new ForgeConfigSpec.Builder();
-        HIDE_DEFAULT_BOXES = commonBuilder
+        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+        HIDE_DEFAULT_BOXES = builder
                 .comment("Whether the built-in loot boxes are hidden from the creative tab and JEI.")
                 .translation("config.lootbox.hide_default_boxes")
                 .define("hide_default_boxes", false);
-        COMMON_SPEC = commonBuilder.build();
-
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         ENABLE_MEKANISM_REWARDS = integration(builder, "mekanism", "config.lootbox.enable_mekanism_rewards");
         ENABLE_CREATE_REWARDS = integration(builder, "create", "config.lootbox.enable_create_rewards");
         ENABLE_IRONS_SPELLBOOKS_REWARDS = integration(builder, "irons_spellbooks", "config.lootbox.enable_irons_spellbooks_rewards");
@@ -55,7 +51,7 @@ public final class LootBoxConfig {
         LEGENDARY_DROP_CHANCE = chance(builder, "legendary", "config.lootbox.legendary_drop_chance", 0.001D);
         ENDURANCE_DROP_CHANCE = chance(builder, "endurance", "config.lootbox.endurance_drop_chance", 0.0001D);
         builder.pop();
-        SPEC = builder.build();
+        COMMON_SPEC = builder.build();
     }
 
     private LootBoxConfig() {}
