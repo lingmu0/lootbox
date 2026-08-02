@@ -33,11 +33,6 @@ import org.slf4j.Logger;
 public class LootBoxMod {
     public static final String MODID = "lootbox";
     public static final Logger LOGGER = LogUtils.getLogger();
-    private static final String[] DEFAULT_BOXES = {
-            "lootbox:common", "lootbox:unusual", "lootbox:rare",
-            "lootbox:epic", "lootbox:legendary", "lootbox:endurance"
-    };
-
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
@@ -63,8 +58,8 @@ public class LootBoxMod {
                     .withTabsBefore(CreativeModeTabs.FUNCTIONAL_BLOCKS)
                     .icon(() -> LootBoxItem.createStack("lootbox:common"))
                     .displayItems((parameters, output) -> {
-                        if (!LootBoxConfig.HIDE_DEFAULT_BOXES.get()) {
-                            for (String boxId : DEFAULT_BOXES) output.accept(LootBoxItem.createStack(boxId));
+                        for (LootBoxDefinition definition : LootBoxManager.creativeDefinitions()) {
+                            output.accept(LootBoxItem.createStack(definition.id().toString()));
                         }
                         output.accept(LOOT_BOX_OPENER_ITEM.get());
                     }).build());
