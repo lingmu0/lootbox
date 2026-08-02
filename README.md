@@ -1,96 +1,165 @@
 # 战利品箱（NeoForge 1.21.1）
 
-所有箱子都是同一个 `lootbox:loot_box` 物品，箱子类型存放在 `minecraft:custom_data` 组件的 `loot_box_id` 字段中。示例：
+这是一个以“定义驱动”为核心的战利品箱模组：物品注册表中只有一个 `lootbox:loot_box`，具体箱子类型由 `minecraft:custom_data` 中的 `loot_box_id` 标识。战利品箱可以来自内置内容、数据包或 KubeJS；服务器会在玩家加入和 `/reload` 后把最终定义同步给客户端，因此联机时 JEI、创造物品栏和提示框使用的内容与服务器一致。
+
+## 快速开始
 
 ```mcfunction
 /lootbox give @s lootbox:common
 /lootbox give @s lootbox:rare 3
 ```
 
-内置箱子等级顺序为：`common`、`unusual`、`rare`、`epic`、`legendary`、`endurance`。耐力奖励箱有 99.99% 概率再次获得耐力奖励箱；剩余 0.01% 中，80% 为 100 个钻石块，20% 为 100 个绿宝石块。
+内置等级从低到高为：
 
-## 数据包定义
+`common` → `unusual` → `rare` → `epic` → `legendary` → `endurance`
 
-每个箱子可选 `color` 字段，支持 `#RRGGBB` 或整数颜色值，用于给贴图染色。
+耐力奖励箱只有 0.01% 的机会进入奖励判定，其中 80% 给出 100 个钻石块，20% 给出 100 个绿宝石块；其余 99.99% 会再次给出耐力奖励箱。
 
-在 `data/<命名空间>/loot_boxes/<id>.json` 中声明 `display_name_key`（翻译键；也兼容直接文本的 `display_name`）、`rolls` 和 `entries`。每个 entry 支持：
+内置箱子会尝试加入 Mekanism、Create、Iron's Spells 'n Spellbooks、Goety、Applied Energistics 2、Terra Entity、The Twilight Forest 和 The Aether 的代表性物品。对应模组未安装时会自动跳过，不会产生硬依赖。
 
-* `item`、`min`、`max`：物品 ID 和数量范围；
-* `tag`：物品标签 ID，例如 `{"tag":"minecraft:music_discs","weight":10}`；标签中的物品会等概率随机抽取，且该条目的总权重仍为 `10`；`item`、`tag`、`box` 三者选其一；
-* `box`：将另一个战利品箱作为奖励，例如 `{"box":"lootbox:endurance","weight":99990}`；
-* `weight`：基础权重；
-* `luck_weight`：最终权重会加上 `玩家幸运 × luck_weight`；
-* `condition: {"type":"luck","min":2}`：内置幸运条件；
-* `condition: {"type":"custom","id":"has_tag","display":"需要 VIP"}` 可由 KJS 注册并提供自定义显示；也可以使用 `display_key` 指定翻译键；其他 `condition.type` 也可直接使用已注册的条件 ID。
-* `jei_info_key`：加入jei_info，此处使用翻译键
+## 数据包
 
-内置奖励池还会尝试加入 Mekanism、Create、Iron's Spells 'n Spellbooks、Goety、Applied Energistics 2、Terra Entity、The Twilight Forest 和 The Aether 的代表性物品。它们只通过注册表 ID 查找；对应模组未安装或物品 ID 不存在时会自动跳过，不会产生硬依赖。
+文件位置：`data/<命名空间>/loot_boxes/<id>.json`
 
-## 配置
+下面是一个完整示例，建议先复制它，再按需删减字段：
 
-* `config/lootbox-common.toml` 的 `hide_default_boxes`：隐藏内置奖励箱，同时从本模组创造物品栏和 JEI 中移除；默认 `false`。
-* `config/lootbox-common.toml` 的 `mob_drops_enabled`：开关玩家击杀生物掉落奖励箱；默认 `true`。
-* 同一文件中的 `enable_mekanism_rewards`、`enable_create_rewards`、`enable_irons_spellbooks_rewards`、`enable_goety_rewards`、`enable_ae2_rewards`、`enable_terra_entity_rewards`、`enable_twilight_forest_rewards` 和 `enable_aether_rewards`：分别开关对应模组的内置奖励池；默认均为 `true`。未安装对应模组时仍会自动跳过。
-* 同一文件的 `mob_drop_chances`：分别配置六种箱子的掉落概率，默认值为普通 `0.05`、不寻常 `0.02`、稀有 `0.01`、史诗 `0.005`、传奇 `0.001`、耐力 `0.0001`。每次击杀最多掉落一个，按耐力、传奇、史诗、稀有、不寻常、普通的顺序判定。
+```json
+{
+  "display_name_key": "example.lootbox.name",
+  "color": "#00E5FF",
+  "rolls": 2,
+  "jei_info_key": "example.lootbox.jei_info",
+  "entries": [
+    {
+      "item": "minecraft:diamond",
+      "min": 1,
+      "max": 3,
+      "weight": 10,
+      "luck_weight": 2,
+      "condition": { "type": "luck", "min": 2 }
+    },
+    {
+      "tag": "minecraft:music_discs",
+      "min": 1,
+      "max": 1,
+      "weight": 5
+    },
+    {
+      "box": "lootbox:rare",
+      "min": 1,
+      "max": 1,
+      "weight": 1
+    }
+  ]
+}
+```
 
-## KJS 接口
+根对象字段：
 
-KubeJS 可以调用 `net.xuwu.lootbox.LootBoxApi`：
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `display_name_key` | 字符串 | 箱子名称翻译键，推荐使用；也可以用 `display_name` 写直接文本。 |
+| `color` | `#RRGGBB`、`0xRRGGBB` 或整数 | 箱子贴图颜色，默认白色。 |
+| `rolls` | 整数 | 每次开箱抽取次数，默认 1。 |
+| `jei_info_key` | 字符串 | JEI Info 翻译键；也可以用 `jei_info` 写直接文本。 |
+| `entries` | 数组 | 奖励条目。每项必须在 `item`、`tag`、`box` 中选择一个。 |
+
+奖励条目还支持：
+
+- `item`：固定物品 ID。
+- `tag`：物品标签 ID。标签内的物品等概率随机选择，但该条目的总权重不变；标签会在标签刷新后重新解析。
+- `box`：另一个战利品箱的 ID。
+- `min`、`max`：数量范围。
+- `weight`：基础权重。
+- `luck_weight`：最终权重为 `weight + 玩家幸运 × luck_weight`。
+- `condition: {"type":"luck","min":2}`：要求玩家幸运值至少为 2。
+- `condition.display_key` 或 `condition.display`：为已注册的自定义条件提供 JEI/提示框显示文本。
+
+## KubeJS
+
+箱子定义应放在 `kubejs/server_scripts/lootbox.js`，这样 `/reload` 后会重新执行；`startup_scripts` 适合只在完整重启时注册的内容。建议每次脚本重载前清理上一批脚本定义：
 
 ```js
 const LootBoxApi = Java.loadClass('net.xuwu.lootbox.LootBoxApi')
-LootBoxApi.registerCondition('has_tag', ctx => ctx.hasPlayer() && ctx.player().getTags().contains('vip'), ctx => '需要 VIP')
-LootBoxApi.register('my_pack:vip', 'VIP 奖励箱', 1, LootBoxApi.entries(
-    LootBoxApi.entry('minecraft:diamond', 1, 2, 10, 2, 'has_tag', '需要 VIP')
-))
+
+LootBoxApi.clearScriptedDefinitions()
+LootBoxApi.registerCondition(
+  'has_vip_tag',
+  ctx => ctx.hasPlayer() && ctx.player().getTags().contains('vip'),
+  ctx => '需要 VIP'
+)
+
+LootBoxApi.registerTranslated(
+  'example:vip',
+  'example.lootbox.vip',
+  1,
+  LootBoxApi.entries(
+    LootBoxApi.entry('minecraft:diamond', 1, 2, 10, 2, 'has_vip_tag', ''),
+    LootBoxApi.entryTag('minecraft:music_discs', 1, 1, 5, 0, '', ''),
+    LootBoxApi.entryBox('lootbox:rare', 1, 1, 1, 0, '', '')
+  ),
+  0x00E5FF,
+  'example.lootbox.vip_jei_info'
+)
 ```
 
-数据包和 KJS 的功能保持一一对应：
+数据包字段与 KJS 方法的对应关系：
 
-| 数据包字段 | KJS 方法 | 说明 |
+| 数据包 | KJS | 说明 |
 | --- | --- | --- |
-| `display_name` | `register` | 直接文本箱名 |
-| `display_name_key` | `registerTranslated` | 翻译键箱名 |
-| `color`、`rolls` | `register(..., color)` | 箱子颜色和抽取次数 |
-| `item` | `entry` | 普通物品奖励 |
-| `tag` | `entryTag` | 标签内物品等概率随机，标签延迟到使用时解析 |
-| `box` | `entryBox` | 将另一个箱子作为奖励 |
-| `jei_info_key` | `register(..., color, jeiInfoKey)` | JEI Info 翻译键 |
-| `condition.display` | `entry(..., conditionText)` | 条件的直接显示文本 |
-| `condition.display_key` | `entryWithConditionKey`、`entryTagWithConditionKey`、`entryBoxWithConditionKey` | 条件的翻译键 |
-| `weight`、`luck_weight`、`min`、`max` | 所有 `entry*` 方法 | 权重、幸运权重和数量范围 |
+| `display_name` | `register` | 直接文本名称。 |
+| `display_name_key` | `registerTranslated` | 翻译键名称。 |
+| `item` | `entry` | 固定物品奖励。 |
+| `tag` | `entryTag` | 标签内物品等概率随机。 |
+| `box` | `entryBox` | 另一个箱子作为奖励。 |
+| `jei_info_key` | `register(..., color, jeiInfoKey)` | JEI Info 翻译键。 |
+| `condition.display_key` | `entryWithConditionKey`、`entryTagWithConditionKey`、`entryBoxWithConditionKey` | 条件显示翻译键。 |
+| `min`、`max`、`weight`、`luck_weight` | 所有 `entry*` 方法 | 数量、权重和幸运权重。 |
 
-标签奖励示例（标签内容会在标签加载或刷新后解析）：
+标签、箱子和翻译键也可以单独组合：
 
 ```js
-LootBoxApi.register('my_pack:tag_rewards', '标签奖励箱', 1, LootBoxApi.entries(
-    LootBoxApi.entryTag('minecraft:music_discs', 1, 1, 10, 0, '', '')
-))
+LootBoxApi.registerTranslated(
+  'example:translated',
+  'example.lootbox.translated',
+  1,
+  LootBoxApi.entries(
+    LootBoxApi.entryTagWithConditionKey(
+      'minecraft:music_discs', 1, 1, 10, 0, 'has_vip_tag', 'example.condition.vip'
+    ),
+    LootBoxApi.entryBox('lootbox:endurance', 1, 1, 1, 0, '', '')
+  ),
+  0x7C4DFF,
+  'example.lootbox.translated_jei_info'
+)
 ```
 
-箱子奖励和翻译键示例：
+## 配置
 
-```js
-LootBoxApi.registerTranslated('my_pack:translated', 'lootbox.example.translated', 1, LootBoxApi.entries(
-    LootBoxApi.entryBox('lootbox:rare', 1, 1, 2, 0, '', ''),
-    LootBoxApi.entryWithConditionKey('minecraft:diamond', 1, 2, 1, 0, 'has_tag', 'condition.example.vip')
-), 0x00E5FF)
-```
+所有配置都位于 `config/lootbox-common.toml`，并且由服务器配置决定实际玩法：
 
-也可以为自定义箱子写入 JEI Info 翻译键：
+- `hide_default_boxes`：隐藏内置箱子，同时从创造物品栏和 JEI 中移除；默认 `false`。
+- `mob_drops_enabled`：是否允许击杀生物掉落内置箱子；默认 `true`。
+- `enable_mekanism_rewards`、`enable_create_rewards`、`enable_irons_spellbooks_rewards`、`enable_goety_rewards`、`enable_ae2_rewards`、`enable_terra_entity_rewards`、`enable_twilight_forest_rewards`、`enable_aether_rewards`：分别控制可选模组联动奖励；默认均为 `true`。
+- `mob_drop_chances`：配置六种内置箱子的掉落概率。每次击杀最多掉落一个，判定顺序为耐力、传奇、史诗、稀有、不寻常、普通。
 
-```js
-LootBoxApi.register('my_pack:info', '带说明的奖励箱', 1, LootBoxApi.entries(
-    LootBoxApi.entry('minecraft:diamond', 1, 1, 1, 0, '', '')
-), 0x00E5FF, 'lootbox.example.info')
-```
+客户端收到服务器快照后，会用服务器的箱子列表和隐藏设置刷新 JEI 与创造栏；客户端本地配置只在尚未连接服务器时作为界面回退值使用。
 
-数据包则在箱子 JSON 根对象中加入 `"jei_info_key": "lootbox.example.info"`。六个内置箱子会自动显示玩家击杀生物的获取方式和对应配置掉落概率。
+## JEI
 
-注册时也可以传入颜色值，例如 `LootBoxApi.register(..., 0x00E5FF)`。
+安装 JEI 后，每个可见战利品箱会显示一个“输入箱子 → 可能奖励”的条目：
 
-如果 KJS 覆盖注册 `lootbox:common`、`lootbox:rare` 等内置箱，跨模组可选奖励池也会和数据包定义一样自动追加；自定义命名空间的箱子不会自动追加。
+- 输入槽和输出槽都使用 JEI 的标准 slot 背景。
+- 标签奖励会展开为标签中的各个物品，并按等概率拆分权重。
+- 悬停奖励会显示数量、权重、幸运权重、当前幸运值下的最终概率和条件。
+- 不满足幸运条件的奖励与 tooltip 保持一致，显示 `0.00%`。
+- `jei_info_key` 或内置箱子的获取方式/掉落概率会显示在 JEI 条目下方，英文等长文本会自动换行。
 
-复杂条件的 JEI 展示文本由 `entry(..., conditionText)` 或对应的 `*WithConditionKey` 方法提供；幸运条件会自动显示为 `幸运 ≥ N`。自动开箱器记录放置者 UUID，只有该玩家在线时才会以其幸运和 KJS 条件进行判断；顶部输入、四周/底部输出均支持漏斗。
+## 联机与重载
 
-后续新增奖励字段、条件或奖励类型时，会同时加入数据包解析器和 `LootBoxApi`，并同步更新此表和示例。
+1. 数据包放入世界的 `datapacks` 目录，KJS 定义放入服务端 `kubejs/server_scripts`。
+2. 执行 `/reload`。
+3. 服务器重新计算数据包与 KJS 定义后，会把最终快照发送给所有在线玩家。
+4. 玩家端自动刷新 JEI、创造物品栏、箱子名称、颜色和奖励展示；不需要让每个客户端重复安装或执行同一份脚本。
+
+如果看不到新箱子，请先确认服务器和客户端的模组版本一致，再检查 `hide_default_boxes`、脚本日志以及 `/reload` 后的服务器日志。未知或被移除的定义仍会通过物品快照安全显示，不会让已有箱子导致崩溃。

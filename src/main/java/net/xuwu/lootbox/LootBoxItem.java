@@ -6,6 +6,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -70,6 +71,13 @@ public class LootBoxItem extends Item {
     }
 
     public static LootBoxDefinition getDefinition(ItemStack stack) {
+        ResourceLocation id = getDefinitionId(stack);
+        LootBoxDefinition definition = LootBoxManager.clientDefinition(id);
+        if (definition == null) definition = getServerDefinition(stack);
+        return definition;
+    }
+
+    private static LootBoxDefinition getServerDefinition(ItemStack stack) {
         LootBoxDefinition definition = LootBoxApi.getDefinition(getDefinitionId(stack));
         if (definition != null) return definition;
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
@@ -79,12 +87,17 @@ public class LootBoxItem extends Item {
         return fromSnapshot(getDefinitionId(stack), snapshot);
     }
 
-    private static CompoundTag snapshot(LootBoxDefinition definition) {
+    public static CompoundTag snapshot(LootBoxDefinition definition) {
         CompoundTag snapshot = new CompoundTag();
         snapshot.putString("name", definition.displayName().getString());
         if (definition.displayNameKey() != null) snapshot.putString("name_key", definition.displayNameKey());
         snapshot.putInt("rolls", definition.rolls());
         snapshot.putInt("color", definition.color());
+        List<Component> info = definition.jeiInfo().isEmpty() && LootBoxManager.isDefaultBox(definition.id())
+                ? LootBoxManager.jeiInfo(definition) : definition.jeiInfo();
+        ListTag jeiInfo = new ListTag();
+        for (Component line : info) jeiInfo.add(componentToTag(line));
+        snapshot.put("jei_info", jeiInfo);
         ListTag entries = new ListTag();
         for (LootBoxDefinition.Entry entry : definition.entries()) {
             CompoundTag json = new CompoundTag();
@@ -108,6 +121,7 @@ public class LootBoxItem extends Item {
             json.putDouble("weight", entry.weight());
             json.putDouble("luck_weight", entry.luckWeight());
             json.putString("condition", entry.conditionComponent().getString());
+            json.put("condition_component", componentToTag(entry.conditionComponent()));
             if (entry.luckMinimum() != null) json.putFloat("luck_minimum", entry.luckMinimum());
             entries.add(json);
         }
@@ -115,7 +129,7 @@ public class LootBoxItem extends Item {
         return snapshot;
     }
 
-    private static LootBoxDefinition fromSnapshot(ResourceLocation id, CompoundTag snapshot) {
+    public static LootBoxDefinition fromSnapshot(ResourceLocation id, CompoundTag snapshot) {
         List<LootBoxDefinition.Entry> entries = new ArrayList<>();
         ListTag list = snapshot.getList("entries", Tag.TAG_COMPOUND);
         for (Tag value : list) {
@@ -138,7 +152,9 @@ public class LootBoxItem extends Item {
                 if (item == null || item == net.minecraft.world.item.Items.AIR) continue;
                 stacks.add(new ItemStack(item));
             }
-            Component conditionText = entry.contains("luck_minimum", Tag.TAG_FLOAT)
+            Component conditionText = entry.contains("condition_component", Tag.TAG_COMPOUND)
+                    ? componentFromTag(entry.getCompound("condition_component"))
+                    : entry.contains("luck_minimum", Tag.TAG_FLOAT)
                     ? Component.translatable("condition.lootbox.luck", entry.getFloat("luck_minimum"))
                     : entry.getString("condition").isBlank()
                     ? Component.empty()
@@ -156,12 +172,41 @@ public class LootBoxItem extends Item {
         Component name = nameKey == null
                 ? Component.literal(snapshot.getString("name"))
                 : Component.translatable(nameKey);
+        List<Component> jeiInfo = new ArrayList<>();
+        for (Tag value : snapshot.getList("jei_info", Tag.TAG_COMPOUND)) {
+            jeiInfo.add(componentFromTag((CompoundTag) value));
+        }
         return new LootBoxDefinition(id, name, snapshot.getInt("rolls"), entries,
-                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF, nameKey);
+                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF, nameKey, jeiInfo);
+    }
+
+    private static CompoundTag componentToTag(Component component) {
+        CompoundTag tag = new CompoundTag();
+        if (component.getContents() instanceof TranslatableContents translated) {
+            tag.putString("key", translated.getKey());
+            Object[] args = translated.getArgs();
+            if (args.length > 0) {
+                ListTag arguments = new ListTag();
+                for (Object arg : args) arguments.add(net.minecraft.nbt.StringTag.valueOf(String.valueOf(arg)));
+                tag.put("args", arguments);
+            }
+        } else {
+            tag.putString("text", component.getString());
+        }
+        return tag;
+    }
+
+    private static Component componentFromTag(CompoundTag tag) {
+        if (tag.contains("key", Tag.TAG_STRING)) {
+            List<String> args = new ArrayList<>();
+            for (Tag value : tag.getList("args", Tag.TAG_STRING)) args.add(value.getAsString());
+            return Component.translatable(tag.getString("key"), args.toArray());
+        }
+        return Component.literal(tag.getString("text"));
     }
 
     public static List<ItemStack> roll(ItemStack box, LootBoxContext context) {
-        LootBoxDefinition definition = getDefinition(box);
+        LootBoxDefinition definition = getServerDefinition(box);
         if (definition == null) return List.of();
         List<LootBoxDefinition.Entry> eligible = new ArrayList<>();
         for (LootBoxDefinition.Entry entry : definition.entries()) {

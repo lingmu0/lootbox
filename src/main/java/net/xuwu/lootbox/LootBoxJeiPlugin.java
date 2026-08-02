@@ -14,6 +14,7 @@ import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.registration.ISubtypeRegistration;
 import mezz.jei.api.ingredients.subtypes.UidContext;
+import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -29,6 +30,8 @@ import java.util.Locale;
 public final class LootBoxJeiPlugin implements IModPlugin {
     public static final RecipeType<LootBoxJeiRecipe> RECIPE_TYPE =
             RecipeType.create(LootBoxMod.MODID, "loot_box", LootBoxJeiRecipe.class);
+    private static volatile IJeiRuntime RUNTIME;
+    private static volatile List<LootBoxJeiRecipe> REGISTERED_RECIPES = List.of();
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -54,13 +57,8 @@ public final class LootBoxJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        List<LootBoxJeiRecipe> recipes = LootBoxManager.definitions().values().stream()
-                .filter(definition -> !LootBoxConfig.HIDE_DEFAULT_BOXES.get()
-                        || !LootBoxManager.isDefaultBox(definition.id()))
-                .map(definition -> new LootBoxJeiRecipe(
-                        LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
-                        LootBoxDefinition.expandForDisplay(definition.entries())))
-                .toList();
+        List<LootBoxJeiRecipe> recipes = buildRecipes();
+        REGISTERED_RECIPES = recipes;
         if (!recipes.isEmpty()) registration.addRecipes(RECIPE_TYPE, recipes);
 
         for (LootBoxDefinition definition : LootBoxManager.creativeDefinitions()) {
@@ -70,6 +68,31 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                         VanillaTypes.ITEM_STACK, info.toArray(Component[]::new));
             }
         }
+    }
+
+    @Override
+    public void onRuntimeAvailable(IJeiRuntime runtime) {
+        RUNTIME = runtime;
+    }
+
+    /** Refreshes the runtime recipe list after a server datapack/KJS sync. */
+    public static void refreshRuntimeRecipes() {
+        IJeiRuntime runtime = RUNTIME;
+        if (runtime == null) return;
+        List<LootBoxJeiRecipe> oldRecipes = REGISTERED_RECIPES;
+        if (!oldRecipes.isEmpty()) runtime.getRecipeManager().hideRecipes(RECIPE_TYPE, oldRecipes);
+        List<LootBoxJeiRecipe> newRecipes = buildRecipes();
+        if (!newRecipes.isEmpty()) runtime.getRecipeManager().addRecipes(RECIPE_TYPE, newRecipes);
+        REGISTERED_RECIPES = newRecipes;
+    }
+
+    private static List<LootBoxJeiRecipe> buildRecipes() {
+        return LootBoxManager.creativeDefinitions().stream()
+                .map(definition -> new LootBoxJeiRecipe(
+                        LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
+                        LootBoxDefinition.expandForDisplay(definition.entries()),
+                        LootBoxManager.jeiInfo(definition)))
+                .toList();
     }
 
     private static final class Category implements IRecipeCategory<LootBoxJeiRecipe> {
@@ -83,7 +106,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         @Override public Component getTitle() { return Component.translatable("jei.lootbox.loot_box"); }
         @Override public IDrawable getIcon() { return icon; }
         @Override public int getWidth() { return 180; }
-        @Override public int getHeight() { return 126; }
+        @Override public int getHeight() { return 148; }
 
         @Override
         public void setRecipe(IRecipeLayoutBuilder builder, LootBoxJeiRecipe recipe, IFocusGroup focuses) {
@@ -114,11 +137,20 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         @Override
         public void draw(LootBoxJeiRecipe recipe, IRecipeSlotsView slots, GuiGraphics graphics, double mouseX, double mouseY) {
             var font = Minecraft.getInstance().font;
-            graphics.drawString(font, Component.translatable("tooltip.lootbox.loot_box_rolls", recipe.rolls()), 4, 91, 0x404040, false);
+            int y = 91;
+            graphics.drawString(font, Component.translatable("tooltip.lootbox.loot_box_rolls", recipe.rolls()), 4, y, 0x404040, false);
+            y += font.lineHeight + 2;
+            for (Component info : recipe.info()) {
+                List<FormattedCharSequence> infoLines = font.split(info, getWidth() - 8);
+                for (FormattedCharSequence line : infoLines) {
+                    graphics.drawString(font, line, 4, y, 0x606060, false);
+                    y += font.lineHeight;
+                }
+            }
             List<FormattedCharSequence> hintLines = font.split(
                     Component.translatable("jei.lootbox.loot_box_hint", formatNumber(currentLuck())), getWidth() - 8);
             for (int line = 0; line < hintLines.size(); line++) {
-                graphics.drawString(font, hintLines.get(line), 4, 103 + line * font.lineHeight, 0x777777, false);
+                graphics.drawString(font, hintLines.get(line), 4, y + line * font.lineHeight, 0x777777, false);
             }
         }
 

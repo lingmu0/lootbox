@@ -22,6 +22,8 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -70,12 +72,18 @@ public class LootBoxMod {
         BLOCK_ENTITIES.register(modBus);
         CREATIVE_MODE_TABS.register(modBus);
         modBus.addListener(this::commonSetup);
+        modBus.addListener(this::registerPayloads);
         modBus.addListener(this::addCreative);
         NeoForge.EVENT_BUS.register(this);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LootBoxApi.registerBuiltinConditions();
+    }
+
+    private void registerPayloads(RegisterPayloadHandlersEvent event) {
+        event.registrar("1").playToClient(LootBoxSyncPayload.TYPE, LootBoxSyncPayload.STREAM_CODEC,
+                (payload, context) -> context.enqueueWork(() -> LootBoxManager.applyClientSync(payload.data())));
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
@@ -87,6 +95,11 @@ public class LootBoxMod {
     @SubscribeEvent
     public void addReloadListener(AddReloadListenerEvent event) {
         event.addListener(new LootBoxManager());
+    }
+
+    @SubscribeEvent
+    public void syncDefinitions(OnDatapackSyncEvent event) {
+        event.getRelevantPlayers().forEach(LootBoxNetwork::sendToPlayer);
     }
 
     @SubscribeEvent
