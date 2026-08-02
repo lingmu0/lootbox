@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,6 +107,14 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
         Map<ResourceLocation, LootBoxDefinition> result = new HashMap<>(DEFINITIONS);
         result.putAll(LootBoxApi.scriptedDefinitions());
         return Map.copyOf(result);
+    }
+
+    /** Definitions currently visible in the mod creative tab, including datapack and KJS boxes. */
+    public static List<LootBoxDefinition> creativeDefinitions() {
+        return definitions().values().stream()
+                .filter(definition -> !LootBoxConfig.HIDE_DEFAULT_BOXES.get() || !isDefaultBox(definition.id()))
+                .sorted(Comparator.comparing(definition -> definition.id().toString()))
+                .toList();
     }
 
     @Override
