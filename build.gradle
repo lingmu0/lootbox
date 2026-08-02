@@ -76,7 +76,7 @@ dependencies {
     // JEI 是可选依赖；没有安装 JEI 时核心功能仍然可用。
     compileOnly "mezz.jei:jei-1.20.1-common:${jei_version}"
     compileOnly "mezz.jei:jei-1.20.1-forge-api:${jei_version}"
-    runtimeOnly "mezz.jei:jei-1.20.1-forge:${jei_version}"
+    runtimeOnly fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}")
 }
 
 // Expand the mod metadata template and include generated data resources.
