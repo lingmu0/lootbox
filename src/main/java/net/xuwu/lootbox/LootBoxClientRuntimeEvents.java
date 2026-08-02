@@ -20,8 +20,10 @@ public final class LootBoxClientRuntimeEvents {
     public static void clientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) {
-            LootBoxManager.clearClientSync();
-            lastAppliedRevision = LootBoxManager.clientSyncRevision();
+            if (minecraft.getConnection() == null) {
+                LootBoxManager.clearClientSync();
+                lastAppliedRevision = LootBoxManager.clientSyncRevision();
+            }
             return;
         }
         long revision = LootBoxManager.clientSyncRevision();
