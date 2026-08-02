@@ -53,6 +53,7 @@ LootBoxApi.register('my_pack:vip', 'VIP 奖励箱', 1, LootBoxApi.entries(
 | `item` | `entry` | 普通物品奖励 |
 | `tag` | `entryTag` | 标签内物品等概率随机，标签延迟到使用时解析 |
 | `box` | `entryBox` | 将另一个箱子作为奖励 |
+| `jei_info_key` | `register(..., color, jeiInfoKey)` | JEI Info 翻译键 |
 | `condition.display` | `entry(..., conditionText)` | 条件的直接显示文本 |
 | `condition.display_key` | `entryWithConditionKey`、`entryTagWithConditionKey`、`entryBoxWithConditionKey` | 条件的翻译键 |
 | `weight`、`luck_weight`、`min`、`max` | 所有 `entry*` 方法 | 权重、幸运权重和数量范围 |
@@ -73,6 +74,16 @@ LootBoxApi.registerTranslated('my_pack:translated', 'lootbox.example.translated'
     LootBoxApi.entryWithConditionKey('minecraft:diamond', 1, 2, 1, 0, 'has_tag', 'condition.example.vip')
 ), 0x00E5FF)
 ```
+
+也可以为自定义箱子写入 JEI Info 翻译键：
+
+```js
+LootBoxApi.register('my_pack:info', '带说明的奖励箱', 1, LootBoxApi.entries(
+    LootBoxApi.entry('minecraft:diamond', 1, 1, 1, 0, '', '')
+), 0x00E5FF, 'lootbox.example.info')
+```
+
+数据包则在箱子 JSON 根对象中加入 `"jei_info_key": "lootbox.example.info"`。六个内置箱子会自动显示玩家击杀生物的获取方式和对应配置掉落概率。
 
 注册时也可以传入颜色值，例如 `LootBoxApi.register(..., 0x00E5FF)`。
 

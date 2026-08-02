@@ -56,6 +56,14 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                         LootBoxDefinition.expandForDisplay(definition.entries())))
                 .toList();
         if (!recipes.isEmpty()) registration.addRecipes(RECIPE_TYPE, recipes);
+
+        for (LootBoxDefinition definition : LootBoxManager.creativeDefinitions()) {
+            List<Component> info = LootBoxManager.jeiInfo(definition);
+            if (!info.isEmpty()) {
+                registration.addIngredientInfo(LootBoxItem.createStack(definition.id().toString()),
+                        VanillaTypes.ITEM_STACK, info.toArray(Component[]::new));
+            }
+        }
     }
 
     private static final class Category implements IRecipeCategory<LootBoxJeiRecipe> {

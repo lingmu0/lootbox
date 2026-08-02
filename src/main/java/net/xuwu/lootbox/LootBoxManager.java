@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -117,6 +118,24 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                 .toList();
     }
 
+    /** Returns custom JEI info, or the built-in acquisition info for a default box. */
+    public static List<Component> jeiInfo(LootBoxDefinition definition) {
+        if (!definition.jeiInfo().isEmpty()) return definition.jeiInfo();
+        if (!isDefaultBox(definition.id())) return List.of();
+        double chance = switch (definition.id().getPath()) {
+            case "common" -> LootBoxConfig.COMMON_DROP_CHANCE.get();
+            case "unusual" -> LootBoxConfig.UNUSUAL_DROP_CHANCE.get();
+            case "rare" -> LootBoxConfig.RARE_DROP_CHANCE.get();
+            case "epic" -> LootBoxConfig.EPIC_DROP_CHANCE.get();
+            case "legendary" -> LootBoxConfig.LEGENDARY_DROP_CHANCE.get();
+            case "endurance" -> LootBoxConfig.ENDURANCE_DROP_CHANCE.get();
+            default -> 0.0D;
+        };
+        return List.of(
+                Component.translatable("jei.lootbox.info.mob_drop"),
+                Component.translatable("jei.lootbox.info.drop_chance", formatPercentage(chance)));
+    }
+
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> jsons, ResourceManager manager, ProfilerFiller profiler) {
         Map<ResourceLocation, LootBoxDefinition> loaded = new HashMap<>();
@@ -139,6 +158,11 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
         Component name = displayNameKey != null
                 ? Component.translatable(displayNameKey)
                 : Component.literal(GsonHelper.getAsString(root, "display_name", id.getPath()));
+        List<Component> jeiInfo = root.has("jei_info_key")
+                ? List.of(Component.translatable(GsonHelper.getAsString(root, "jei_info_key")))
+                : root.has("jei_info")
+                ? List.of(Component.literal(GsonHelper.getAsString(root, "jei_info")))
+                : List.of();
         int rolls = GsonHelper.getAsInt(root, "rolls", 1);
         int color = parseColor(root.get("color"));
         List<LootBoxDefinition.Entry> entries = new ArrayList<>();
@@ -209,7 +233,11 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
             }
         }
         if (isDefaultBox(id)) entries = LootBoxOptionalRewards.append(id.getPath(), entries);
-        return new LootBoxDefinition(id, name, rolls, entries, color, displayNameKey);
+        return new LootBoxDefinition(id, name, rolls, entries, color, displayNameKey, jeiInfo);
+    }
+
+    private static String formatPercentage(double chance) {
+        return String.format(Locale.ROOT, "%.4f%%", chance * 100.0D);
     }
 
     private static String formatNumber(float value) {

@@ -26,6 +26,8 @@
   "jei.lootbox.final_probability": "Final chance: %s",
   "jei.lootbox.condition": "Condition: %s",
   "jei.lootbox.condition.none": "None",
+  "jei.lootbox.info.mob_drop": "Obtained when a player kills a mob",
+  "jei.lootbox.info.drop_chance": "Configured drop chance: %s",
   "config.lootbox.hide_default_boxes": "Hide built-in loot boxes",
   "config.lootbox.mob_drops_enabled": "Enable mob loot box drops",
   "config.lootbox.common_drop_chance": "Common loot box drop chance",

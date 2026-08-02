@@ -56,7 +56,14 @@ public final class LootBoxApi {
     /** 注册箱子并使用 RGB 色值给原版箱子贴图染色，例如 0x7C4DFF。 */
     public static void register(String id, String displayName, int rolls, List<LootBoxDefinition.Entry> entries, int color) {
         ResourceLocation location = new ResourceLocation(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
-        registerDefinition(location, Component.literal(displayName), null, rolls, entries, color);
+        registerDefinition(location, Component.literal(displayName), null, rolls, entries, color, null);
+    }
+
+    /** Registers a box and adds one translated JEI information line. */
+    public static void register(String id, String displayName, int rolls, List<LootBoxDefinition.Entry> entries,
+                                int color, String jeiInfoKey) {
+        ResourceLocation location = new ResourceLocation(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
+        registerDefinition(location, Component.literal(displayName), null, rolls, entries, color, jeiInfoKey);
     }
 
     /** Registers a box using a localization key, matching data-pack display_name_key. */
@@ -69,15 +76,26 @@ public final class LootBoxApi {
     public static void registerTranslated(String id, String displayNameKey, int rolls,
                                           List<LootBoxDefinition.Entry> entries, int color) {
         ResourceLocation location = new ResourceLocation(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
-        registerDefinition(location, Component.translatable(displayNameKey), displayNameKey, rolls, entries, color);
+        registerDefinition(location, Component.translatable(displayNameKey), displayNameKey, rolls, entries, color, null);
+    }
+
+    /** Registers a translated-name box and adds one translated JEI information line. */
+    public static void registerTranslated(String id, String displayNameKey, int rolls,
+                                          List<LootBoxDefinition.Entry> entries, int color, String jeiInfoKey) {
+        ResourceLocation location = new ResourceLocation(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
+        registerDefinition(location, Component.translatable(displayNameKey), displayNameKey, rolls, entries, color, jeiInfoKey);
     }
 
     private static void registerDefinition(ResourceLocation location, Component displayName, String displayNameKey,
-                                           int rolls, List<LootBoxDefinition.Entry> entries, int color) {
+                                           int rolls, List<LootBoxDefinition.Entry> entries, int color,
+                                           String jeiInfoKey) {
         List<LootBoxDefinition.Entry> finalEntries = LootBoxManager.isDefaultBox(location)
                 ? LootBoxOptionalRewards.append(location.getPath(), entries)
                 : List.copyOf(entries);
-        SCRIPT_DEFINITIONS.put(location, new LootBoxDefinition(location, displayName, rolls, finalEntries, color, displayNameKey));
+        List<Component> jeiInfo = jeiInfoKey == null || jeiInfoKey.isBlank()
+                ? List.of() : List.of(Component.translatable(jeiInfoKey));
+        SCRIPT_DEFINITIONS.put(location, new LootBoxDefinition(location, displayName, rolls, finalEntries, color,
+                displayNameKey, jeiInfo));
     }
 
     public static LootBoxDefinition getDefinition(ResourceLocation id) {
