@@ -103,6 +103,11 @@ public final class LootBoxApi {
         return scripted != null ? scripted : LootBoxManager.get(id);
     }
 
+    /** Clears definitions from the previous KJS server-script evaluation before registering the new set. */
+    public static void clearScriptedDefinitions() {
+        SCRIPT_DEFINITIONS.clear();
+    }
+
     public static ItemStack createBox(String id) {
         return LootBoxItem.createStack(id);
     }

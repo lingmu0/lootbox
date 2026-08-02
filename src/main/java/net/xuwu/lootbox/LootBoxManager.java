@@ -6,6 +6,9 @@ import com.google.gson.JsonObject;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -29,6 +32,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class LootBoxManager extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new Gson();
     private static final Map<ResourceLocation, LootBoxDefinition> DEFINITIONS = new ConcurrentHashMap<>();
+    /** Effective definitions received by a physical client from the logical server. */
+    private static final Map<ResourceLocation, LootBoxDefinition> CLIENT_DEFINITIONS = new ConcurrentHashMap<>();
+    private static volatile boolean CLIENT_SYNCED;
+    private static volatile boolean CLIENT_HIDE_DEFAULT_BOXES;
+    private static volatile long CLIENT_SYNC_REVISION;
 
     static {
         LootBoxCondition always = context -> true;
@@ -110,12 +118,72 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
         return Map.copyOf(result);
     }
 
+    /** Definitions used by client-only screens. Falls back to local data before the first server sync. */
+    public static Map<ResourceLocation, LootBoxDefinition> visibleDefinitions() {
+        return CLIENT_SYNCED ? Map.copyOf(CLIENT_DEFINITIONS) : definitions();
+    }
+
     /** Definitions currently visible in the mod creative tab, including datapack and KJS boxes. */
     public static List<LootBoxDefinition> creativeDefinitions() {
-        return definitions().values().stream()
-                .filter(definition -> !LootBoxConfig.HIDE_DEFAULT_BOXES.get() || !isDefaultBox(definition.id()))
+        boolean hideDefaults = CLIENT_SYNCED ? CLIENT_HIDE_DEFAULT_BOXES : LootBoxConfig.HIDE_DEFAULT_BOXES.get();
+        return visibleDefinitions().values().stream()
+                .filter(definition -> !hideDefaults || !isDefaultBox(definition.id()))
                 .sorted(Comparator.comparing(definition -> definition.id().toString()))
                 .toList();
+    }
+
+    public static LootBoxDefinition clientDefinition(ResourceLocation id) {
+        return CLIENT_SYNCED ? CLIENT_DEFINITIONS.get(id) : null;
+    }
+
+    public static long clientSyncRevision() {
+        return CLIENT_SYNC_REVISION;
+    }
+
+    /** Serializes the server's complete effective definition set for a joining/reloading client. */
+    public static CompoundTag createSyncPayload() {
+        CompoundTag payload = new CompoundTag();
+        payload.putBoolean("hide_default_boxes", LootBoxConfig.HIDE_DEFAULT_BOXES.get());
+        ListTag definitions = new ListTag();
+        for (LootBoxDefinition definition : definitions().values()) {
+            CompoundTag entry = new CompoundTag();
+            entry.putString("id", definition.id().toString());
+            entry.put("definition", LootBoxItem.snapshot(definition));
+            definitions.add(entry);
+        }
+        payload.put("definitions", definitions);
+        return payload;
+    }
+
+    /** Applies a server snapshot on the physical client without changing logical-server definitions. */
+    public static void applyClientSync(CompoundTag payload) {
+        Map<ResourceLocation, LootBoxDefinition> loaded = new HashMap<>();
+        ListTag list = payload.getList("definitions", Tag.TAG_COMPOUND);
+        for (Tag value : list) {
+            CompoundTag entry = (CompoundTag) value;
+            try {
+                ResourceLocation id = new ResourceLocation(entry.getString("id"));
+                CompoundTag definition = entry.getCompound("definition");
+                if (!definition.isEmpty()) loaded.put(id, LootBoxItem.fromSnapshot(id, definition));
+            } catch (RuntimeException exception) {
+                LootBoxMod.LOGGER.warn("Unable to apply a synced loot box definition", exception);
+            }
+        }
+        CLIENT_DEFINITIONS.clear();
+        CLIENT_DEFINITIONS.putAll(loaded);
+        CLIENT_HIDE_DEFAULT_BOXES = payload.getBoolean("hide_default_boxes");
+        CLIENT_SYNCED = true;
+        CLIENT_SYNC_REVISION++;
+        LootBoxMod.LOGGER.debug("Received {} loot box definitions from the server", loaded.size());
+    }
+
+    /** Clears a previous server snapshot when the client disconnects. */
+    public static void clearClientSync() {
+        if (!CLIENT_SYNCED && CLIENT_DEFINITIONS.isEmpty()) return;
+        CLIENT_DEFINITIONS.clear();
+        CLIENT_SYNCED = false;
+        CLIENT_HIDE_DEFAULT_BOXES = false;
+        CLIENT_SYNC_REVISION++;
     }
 
     /** Returns custom JEI info, or the built-in acquisition info for a default box. */

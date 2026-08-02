@@ -15,6 +15,7 @@ import net.minecraft.world.level.material.MapColor;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -78,6 +79,7 @@ public class LootBoxMod {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LootBoxApi.registerBuiltinConditions();
+        LootBoxNetwork.register();
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
@@ -89,6 +91,11 @@ public class LootBoxMod {
     @SubscribeEvent
     public void addReloadListener(AddReloadListenerEvent event) {
         event.addListener(new LootBoxManager());
+    }
+
+    @SubscribeEvent
+    public void syncDefinitions(OnDatapackSyncEvent event) {
+        event.getPlayers().forEach(LootBoxNetwork::sendToPlayer);
     }
 
     @SubscribeEvent
