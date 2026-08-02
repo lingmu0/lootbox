@@ -22,6 +22,7 @@
 * `luck_weight`：最终权重会加上 `玩家幸运 × luck_weight`；
 * `condition: {"type":"luck","min":2}`：内置幸运条件；
 * `condition: {"type":"custom","id":"has_tag","display":"需要 VIP"}` 可由 KJS 注册并提供自定义显示；也可以使用 `display_key` 指定翻译键；其他 `condition.type` 也可直接使用已注册的条件 ID。
+* `jei_info_key`：加入jei_info，此处使用翻译键
 
 内置奖励池还会尝试加入 Mekanism、Create、Iron's Spells 'n Spellbooks、Goety、Applied Energistics 2、Terra Entity、The Twilight Forest 和 The Aether 的代表性物品。它们只通过注册表 ID 查找；对应模组未安装或物品 ID 不存在时会自动跳过，不会产生硬依赖。
 
