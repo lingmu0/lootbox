@@ -78,12 +78,27 @@ public final class LootBoxOptionalRewards {
         LootBoxCondition always = LootBoxApi.condition("always");
         for (OptionalReward reward : REWARDS) {
             if (!reward.tier().equals(tier)) continue;
+            if (!isIntegrationEnabled(reward.itemId().getNamespace())) continue;
             Item item = BuiltInRegistries.ITEM.get(reward.itemId());
             if (item == null || item == Items.AIR) continue;
             result.add(new LootBoxDefinition.Entry(new ItemStack(item), reward.min(), reward.max(), reward.weight(), 0,
                     always, ""));
         }
         return List.copyOf(result);
+    }
+
+    private static boolean isIntegrationEnabled(String modId) {
+        return switch (modId) {
+            case "mekanism" -> LootBoxConfig.ENABLE_MEKANISM_REWARDS.get();
+            case "create" -> LootBoxConfig.ENABLE_CREATE_REWARDS.get();
+            case "irons_spellbooks" -> LootBoxConfig.ENABLE_IRONS_SPELLBOOKS_REWARDS.get();
+            case "goety" -> LootBoxConfig.ENABLE_GOETY_REWARDS.get();
+            case "ae2" -> LootBoxConfig.ENABLE_AE2_REWARDS.get();
+            case "terra_entity" -> LootBoxConfig.ENABLE_TERRA_ENTITY_REWARDS.get();
+            case "twilightforest" -> LootBoxConfig.ENABLE_TWILIGHT_FOREST_REWARDS.get();
+            case "aether" -> LootBoxConfig.ENABLE_AETHER_REWARDS.get();
+            default -> true;
+        };
     }
 
     private static OptionalReward reward(String tier, String itemId, int min, int max, double weight) {

@@ -7,6 +7,14 @@ public final class LootBoxConfig {
     public static final ModConfigSpec COMMON_SPEC;
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue HIDE_DEFAULT_BOXES;
+    public static final ModConfigSpec.BooleanValue ENABLE_MEKANISM_REWARDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_CREATE_REWARDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_IRONS_SPELLBOOKS_REWARDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_GOETY_REWARDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_AE2_REWARDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_TERRA_ENTITY_REWARDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_TWILIGHT_FOREST_REWARDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_AETHER_REWARDS;
     public static final ModConfigSpec.BooleanValue MOB_DROPS_ENABLED;
     public static final ModConfigSpec.DoubleValue COMMON_DROP_CHANCE;
     public static final ModConfigSpec.DoubleValue RARE_DROP_CHANCE;
@@ -24,6 +32,14 @@ public final class LootBoxConfig {
         COMMON_SPEC = commonBuilder.build();
 
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        ENABLE_MEKANISM_REWARDS = integration(builder, "mekanism", "config.lootbox.enable_mekanism_rewards");
+        ENABLE_CREATE_REWARDS = integration(builder, "create", "config.lootbox.enable_create_rewards");
+        ENABLE_IRONS_SPELLBOOKS_REWARDS = integration(builder, "irons_spellbooks", "config.lootbox.enable_irons_spellbooks_rewards");
+        ENABLE_GOETY_REWARDS = integration(builder, "goety", "config.lootbox.enable_goety_rewards");
+        ENABLE_AE2_REWARDS = integration(builder, "ae2", "config.lootbox.enable_ae2_rewards");
+        ENABLE_TERRA_ENTITY_REWARDS = integration(builder, "terra_entity", "config.lootbox.enable_terra_entity_rewards");
+        ENABLE_TWILIGHT_FOREST_REWARDS = integration(builder, "twilightforest", "config.lootbox.enable_twilight_forest_rewards");
+        ENABLE_AETHER_REWARDS = integration(builder, "aether", "config.lootbox.enable_aether_rewards");
         MOB_DROPS_ENABLED = builder
                 .comment("Whether mobs killed by a player can drop loot boxes.")
                 .translation("config.lootbox.mob_drops_enabled")
@@ -43,6 +59,14 @@ public final class LootBoxConfig {
     }
 
     private LootBoxConfig() {}
+
+    private static ModConfigSpec.BooleanValue integration(ModConfigSpec.Builder builder, String modId,
+                                                           String translationKey) {
+        return builder
+                .comment("Whether rewards from " + modId + " are added to built-in loot boxes.")
+                .translation(translationKey)
+                .define("enable_" + modId + "_rewards", true);
+    }
 
     private static ModConfigSpec.DoubleValue chance(ModConfigSpec.Builder builder, String path,
                                                      String translationKey, double defaultValue) {

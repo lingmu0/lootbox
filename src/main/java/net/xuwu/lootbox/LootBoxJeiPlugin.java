@@ -87,7 +87,9 @@ public final class LootBoxJeiPlugin implements IModPlugin {
 
         @Override
         public void setRecipe(IRecipeLayoutBuilder builder, LootBoxJeiRecipe recipe, IFocusGroup focuses) {
-            builder.addInputSlot(6, 6).addItemStack(recipe.box());
+            builder.addInputSlot(6, 6)
+                    .setStandardSlotBackground()
+                    .addItemStack(recipe.box());
             int index = 0;
             for (LootBoxDefinition.Entry entry : recipe.entries()) {
                 int row = index / 6;
