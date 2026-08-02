@@ -58,7 +58,8 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                 .filter(definition -> !LootBoxConfig.HIDE_DEFAULT_BOXES.get()
                         || !LootBoxManager.isDefaultBox(definition.id()))
                 .map(definition -> new LootBoxJeiRecipe(
-                        LootBoxItem.createStack(definition.id().toString()), definition.rolls(), definition.entries()))
+                        LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
+                        LootBoxDefinition.expandForDisplay(definition.entries())))
                 .toList();
         if (!recipes.isEmpty()) registration.addRecipes(RECIPE_TYPE, recipes);
     }

@@ -1,11 +1,8 @@
 package net.xuwu.lootbox;
 
-import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -59,7 +56,28 @@ public final class LootBoxApi {
     /** 注册箱子并使用 RGB 色值给原版箱子贴图染色，例如 0x7C4DFF。 */
     public static void register(String id, String displayName, int rolls, List<LootBoxDefinition.Entry> entries, int color) {
         ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
-        SCRIPT_DEFINITIONS.put(location, new LootBoxDefinition(location, Component.literal(displayName), rolls, entries, color));
+        registerDefinition(location, Component.literal(displayName), null, rolls, entries, color);
+    }
+
+    /** Registers a box using a localization key, matching data-pack display_name_key. */
+    public static void registerTranslated(String id, String displayNameKey, int rolls,
+                                          List<LootBoxDefinition.Entry> entries) {
+        registerTranslated(id, displayNameKey, rolls, entries, 0xFFFFFF);
+    }
+
+    /** Registers a box using a localization key and RGB tint. */
+    public static void registerTranslated(String id, String displayNameKey, int rolls,
+                                          List<LootBoxDefinition.Entry> entries, int color) {
+        ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
+        registerDefinition(location, Component.translatable(displayNameKey), displayNameKey, rolls, entries, color);
+    }
+
+    private static void registerDefinition(ResourceLocation location, Component displayName, String displayNameKey,
+                                           int rolls, List<LootBoxDefinition.Entry> entries, int color) {
+        List<LootBoxDefinition.Entry> finalEntries = LootBoxManager.isDefaultBox(location)
+                ? LootBoxOptionalRewards.append(location.getPath(), entries)
+                : List.copyOf(entries);
+        SCRIPT_DEFINITIONS.put(location, new LootBoxDefinition(location, displayName, rolls, finalEntries, color, displayNameKey));
     }
 
     public static LootBoxDefinition getDefinition(ResourceLocation id) {
@@ -74,13 +92,24 @@ public final class LootBoxApi {
     /** 方便 KJS 构建奖励项的工厂，组件可由脚本在返回的 ItemStack 上继续设置。 */
     public static LootBoxDefinition.Entry entry(String itemId, int min, int max, double weight,
                                                  double luckWeight, String conditionId, String conditionText) {
+        return entry(itemId, min, max, weight, luckWeight, conditionId, literalConditionText(conditionText));
+    }
+
+    private static LootBoxDefinition.Entry entry(String itemId, int min, int max, double weight,
+                                                  double luckWeight, String conditionId, Component conditionText) {
         ResourceLocation id = ResourceLocation.parse(itemId);
         var item = BuiltInRegistries.ITEM.get(id);
         if (item == Items.AIR) item = Items.BARRIER;
-        LootBoxCondition condition = conditionId == null || conditionId.isBlank()
-                ? LootBoxApi.condition("always") : LootBoxApi.condition(conditionId);
-        if (condition == null) condition = context -> false;
+        LootBoxCondition condition = resolveCondition(conditionId);
         return new LootBoxDefinition.Entry(new ItemStack(item), min, max, weight, luckWeight, condition, conditionText);
+    }
+
+    /** Item reward whose condition description is a translation key, matching data-pack display_key. */
+    public static LootBoxDefinition.Entry entryWithConditionKey(String itemId, int min, int max, double weight,
+                                                                  double luckWeight, String conditionId,
+                                                                  String conditionKey) {
+        return entry(itemId, min, max, weight, luckWeight, conditionId,
+                Component.translatable(conditionKey));
     }
 
     public static LootBoxDefinition.Entry entry(ItemStack stack, int min, int max, double weight,
@@ -89,21 +118,44 @@ public final class LootBoxApi {
         return new LootBoxDefinition.Entry(stack.copy(), min, max, weight, luckWeight, condition, conditionText);
     }
 
+    /** ItemStack reward whose condition description is a translation key. */
+    public static LootBoxDefinition.Entry entryStackWithConditionKey(ItemStack stack, int min, int max,
+                                                                       double weight, double luckWeight,
+                                                                       String conditionId, String conditionKey) {
+        return new LootBoxDefinition.Entry(stack.copy(), min, max, weight, luckWeight, resolveCondition(conditionId),
+                Component.translatable(conditionKey));
+    }
+
+    /** Reward that gives another loot box, matching the data-pack box entry. */
+    public static LootBoxDefinition.Entry entryBox(String boxId, int min, int max, double weight,
+                                                    double luckWeight, String conditionId, String conditionText) {
+        return new LootBoxDefinition.Entry(LootBoxItem.createReferenceStack(boxId), min, max, weight, luckWeight,
+                resolveCondition(conditionId), conditionText);
+    }
+
+    /** Nested loot-box reward whose condition description is a translation key. */
+    public static LootBoxDefinition.Entry entryBoxWithConditionKey(String boxId, int min, int max, double weight,
+                                                                     double luckWeight, String conditionId,
+                                                                     String conditionKey) {
+        return new LootBoxDefinition.Entry(LootBoxItem.createReferenceStack(boxId), min, max, weight, luckWeight,
+                resolveCondition(conditionId), Component.translatable(conditionKey));
+    }
+
     /** Creates a reward that randomly selects one item from the tag with equal probability. */
     public static LootBoxDefinition.Entry entryTag(String tagId, int min, int max, double weight,
                                                     double luckWeight, String conditionId, String conditionText) {
         String normalizedTagId = tagId != null && tagId.startsWith("#") ? tagId.substring(1) : tagId;
-        TagKey<Item> tag = TagKey.create(Registries.ITEM, ResourceLocation.parse(normalizedTagId));
-        HolderSet.Named<Item> taggedItems = BuiltInRegistries.ITEM.getTag(tag).orElse(null);
-        List<ItemStack> stacks = taggedItems == null
-                ? List.of(new ItemStack(Items.BARRIER))
-                : taggedItems.stream().map(holder -> new ItemStack(holder.value())).toList();
-        if (stacks.isEmpty()) stacks = List.of(new ItemStack(Items.BARRIER));
-        if (taggedItems == null || taggedItems.size() == 0) {
-            LootBoxMod.LOGGER.warn("KJS loot box entry references missing or empty item tag {}", tag);
-        }
-        return new LootBoxDefinition.Entry(stacks, min, max, weight, luckWeight,
-                resolveCondition(conditionId), conditionText == null ? Component.empty() : Component.literal(conditionText), null);
+        return new LootBoxDefinition.Entry(normalizedTagId, min, max, weight, luckWeight,
+                resolveCondition(conditionId), literalConditionText(conditionText));
+    }
+
+    /** Tag reward whose condition description is a translation key. */
+    public static LootBoxDefinition.Entry entryTagWithConditionKey(String tagId, int min, int max, double weight,
+                                                                     double luckWeight, String conditionId,
+                                                                     String conditionKey) {
+        String normalizedTagId = tagId != null && tagId.startsWith("#") ? tagId.substring(1) : tagId;
+        return new LootBoxDefinition.Entry(normalizedTagId, min, max, weight, luckWeight,
+                resolveCondition(conditionId), Component.translatable(conditionKey));
     }
 
     public static List<LootBoxDefinition.Entry> entries(LootBoxDefinition.Entry... entries) {
@@ -118,6 +170,10 @@ public final class LootBoxApi {
         LootBoxCondition condition = conditionId == null || conditionId.isBlank()
                 ? LootBoxApi.condition("always") : LootBoxApi.condition(conditionId);
         return condition == null ? context -> false : condition;
+    }
+
+    private static Component literalConditionText(String conditionText) {
+        return conditionText == null || conditionText.isBlank() ? Component.empty() : Component.literal(conditionText);
     }
 
     private static void registerBuiltinConditionsGuard() {

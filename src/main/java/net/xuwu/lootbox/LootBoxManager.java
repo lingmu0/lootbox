@@ -125,8 +125,10 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
     }
 
     private static LootBoxDefinition parse(ResourceLocation id, JsonObject root) {
-        Component name = root.has("display_name_key")
-                ? Component.translatable(GsonHelper.getAsString(root, "display_name_key"))
+        String displayNameKey = root.has("display_name_key")
+                ? GsonHelper.getAsString(root, "display_name_key") : null;
+        Component name = displayNameKey != null
+                ? Component.translatable(displayNameKey)
                 : Component.literal(GsonHelper.getAsString(root, "display_name", id.getPath()));
         int rolls = GsonHelper.getAsInt(root, "rolls", 1);
         int color = parseColor(root.get("color"));
@@ -198,7 +200,7 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
             }
         }
         if (isDefaultBox(id)) entries = LootBoxOptionalRewards.append(id.getPath(), entries);
-        return new LootBoxDefinition(id, name, rolls, entries, color);
+        return new LootBoxDefinition(id, name, rolls, entries, color, displayNameKey);
     }
 
     private static String formatNumber(float value) {

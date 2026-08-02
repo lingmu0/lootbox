@@ -43,7 +43,21 @@ LootBoxApi.register('my_pack:vip', 'VIP 奖励箱', 1, LootBoxApi.entries(
 ))
 ```
 
-KJS 也支持标签奖励；标签内物品等概率随机抽取：
+数据包和 KJS 的功能保持一一对应：
+
+| 数据包字段 | KJS 方法 | 说明 |
+| --- | --- | --- |
+| `display_name` | `register` | 直接文本箱名 |
+| `display_name_key` | `registerTranslated` | 翻译键箱名 |
+| `color`、`rolls` | `register(..., color)` | 箱子颜色和抽取次数 |
+| `item` | `entry` | 普通物品奖励 |
+| `tag` | `entryTag` | 标签内物品等概率随机，标签延迟到使用时解析 |
+| `box` | `entryBox` | 将另一个箱子作为奖励 |
+| `condition.display` | `entry(..., conditionText)` | 条件的直接显示文本 |
+| `condition.display_key` | `entryWithConditionKey`、`entryTagWithConditionKey`、`entryBoxWithConditionKey` | 条件的翻译键 |
+| `weight`、`luck_weight`、`min`、`max` | 所有 `entry*` 方法 | 权重、幸运权重和数量范围 |
+
+标签奖励示例（标签内容会在标签加载或刷新后解析）：
 
 ```js
 LootBoxApi.register('my_pack:tag_rewards', '标签奖励箱', 1, LootBoxApi.entries(
@@ -51,6 +65,19 @@ LootBoxApi.register('my_pack:tag_rewards', '标签奖励箱', 1, LootBoxApi.entr
 ))
 ```
 
+箱子奖励和翻译键示例：
+
+```js
+LootBoxApi.registerTranslated('my_pack:translated', 'lootbox.example.translated', 1, LootBoxApi.entries(
+    LootBoxApi.entryBox('lootbox:rare', 1, 1, 2, 0, '', ''),
+    LootBoxApi.entryWithConditionKey('minecraft:diamond', 1, 2, 1, 0, 'has_tag', 'condition.example.vip')
+), 0x00E5FF)
+```
+
 注册时也可以传入颜色值，例如 `LootBoxApi.register(..., 0x00E5FF)`。
 
-复杂条件的 JEI 展示文本由 `entry(..., conditionText)` 提供；幸运条件会自动显示为 `幸运 ≥ N`。自动开箱器记录放置者 UUID，只有该玩家在线时才会以其幸运和 KJS 条件进行判断；顶部输入、四周/底部输出均支持漏斗。
+如果 KJS 覆盖注册 `lootbox:common`、`lootbox:rare` 等内置箱，跨模组可选奖励池也会和数据包定义一样自动追加；自定义命名空间的箱子不会自动追加。
+
+复杂条件的 JEI 展示文本由 `entry(..., conditionText)` 或对应的 `*WithConditionKey` 方法提供；幸运条件会自动显示为 `幸运 ≥ N`。自动开箱器记录放置者 UUID，只有该玩家在线时才会以其幸运和 KJS 条件进行判断；顶部输入、四周/底部输出均支持漏斗。
+
+后续新增奖励字段、条件或奖励类型时，会同时加入数据包解析器和 `LootBoxApi`，并同步更新此表和示例。
