@@ -78,12 +78,15 @@ public class LootBoxItem extends Item {
     private static CompoundTag snapshot(LootBoxDefinition definition) {
         CompoundTag snapshot = new CompoundTag();
         snapshot.putString("name", definition.displayName().getString());
+        if (definition.displayNameKey() != null) snapshot.putString("name_key", definition.displayNameKey());
         snapshot.putInt("rolls", definition.rolls());
         snapshot.putInt("color", definition.color());
         ListTag entries = new ListTag();
         for (LootBoxDefinition.Entry entry : definition.entries()) {
             CompoundTag json = new CompoundTag();
-            if (entry.stack().getItem() instanceof LootBoxItem) {
+            if (entry.tagId() != null) {
+                json.putString("tag", entry.tagId());
+            } else if (entry.stack().getItem() instanceof LootBoxItem) {
                 json.putString("box", getDefinitionId(entry.stack()).toString());
             } else if (entry.possibleStacks().size() > 1) {
                 ListTag items = new ListTag();
@@ -114,7 +117,10 @@ public class LootBoxItem extends Item {
         for (Tag value : list) {
             CompoundTag entry = (CompoundTag) value;
             List<ItemStack> stacks = new ArrayList<>();
-            if (entry.contains("box", Tag.TAG_STRING)) {
+            String tagId = null;
+            if (entry.contains("tag", Tag.TAG_STRING)) {
+                tagId = entry.getString("tag");
+            } else if (entry.contains("box", Tag.TAG_STRING)) {
                 stacks.add(createReferenceStack(entry.getString("box")));
             } else if (entry.contains("items", Tag.TAG_LIST)) {
                 for (Tag itemValue : entry.getList("items", Tag.TAG_COMPOUND)) {
@@ -134,12 +140,20 @@ public class LootBoxItem extends Item {
                     ? Component.empty()
                     : Component.literal(entry.getString("condition"));
             Float luckMinimum = entry.contains("luck_minimum", Tag.TAG_FLOAT) ? entry.getFloat("luck_minimum") : null;
-            entries.add(new LootBoxDefinition.Entry(stacks, entry.getInt("min"), entry.getInt("max"),
+            entries.add(tagId == null
+                    ? new LootBoxDefinition.Entry(stacks, entry.getInt("min"), entry.getInt("max"),
+                    entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
+                    conditionText, luckMinimum)
+                    : new LootBoxDefinition.Entry(tagId, entry.getInt("min"), entry.getInt("max"),
                     entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
                     conditionText, luckMinimum));
         }
-        return new LootBoxDefinition(id, Component.literal(snapshot.getString("name")), snapshot.getInt("rolls"), entries,
-                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF);
+        String nameKey = snapshot.contains("name_key", Tag.TAG_STRING) ? snapshot.getString("name_key") : null;
+        Component name = nameKey == null
+                ? Component.literal(snapshot.getString("name"))
+                : Component.translatable(nameKey);
+        return new LootBoxDefinition(id, name, snapshot.getInt("rolls"), entries,
+                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF, nameKey);
     }
 
     public static List<ItemStack> roll(ItemStack box, LootBoxContext context) {
@@ -208,8 +222,8 @@ public class LootBoxItem extends Item {
         tooltip.add(Component.translatable("tooltip.lootbox.shift_for_details").withStyle(ChatFormatting.GRAY));
         if (!detailsRequested()) return;
         tooltip.add(Component.translatable("tooltip.lootbox.loot_box_rolls", definition.rolls()).withStyle(ChatFormatting.GRAY));
-        for (LootBoxDefinition.Entry entry : definition.entries()) {
-            var line = Component.literal("- ").append(entry.stack().getHoverName())
+        for (LootBoxDefinition.Entry entry : LootBoxDefinition.expandForDisplay(definition.entries())) {
+            var line = Component.literal("- ").append(entry.displayStack().getHoverName())
                     .append(" x" + entry.min() + (entry.max() == entry.min() ? "" : "-" + entry.max()))
                     .append("  ")
                     .append(Component.translatable("tooltip.lootbox.probability", probabilityText(definition, entry)));
