@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "IHI",
+    "IRI",
+    "III"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "H": { "item": "minecraft:hopper" },
+    "R": { "item": "minecraft:redstone" }
+  },
+  "result": {
+    "item": "lootbox:loot_box_opener",
+    "count": 1
+  }
+}
