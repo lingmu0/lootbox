@@ -141,7 +141,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         @Override
         public void createRecipeExtras(IRecipeExtrasBuilder builder, LootBoxJeiRecipe recipe, IFocusGroup focuses) {
             builder.addScrollGridWidget(
-                    builder.getRecipeSlots().getSlots(RecipeIngredientRole.OUTPUT), 6, 3)
+                    builder.getRecipeSlots().getSlots(RecipeIngredientRole.OUTPUT), 7, 4)
                     .setPosition(38, 6);
         }
 
