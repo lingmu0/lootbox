@@ -286,13 +286,16 @@ public class LootBoxItem extends Item {
 
     private static Component rewardDisplayName(LootBoxDefinition.Entry entry) {
         if (entry.tagId() == null) return entry.displayStack().getHoverName();
-        String preview = entry.resolvedStacks().stream()
+        var matchingStacks = entry.resolvedStacks();
+        String preview = matchingStacks.stream()
                 .limit(2)
                 .map(stack -> stack.getHoverName().getString())
-                .collect(Collectors.joining(", "));
+                .collect(Collectors.joining(Component.translatable("tooltip.lootbox.tag_preview.separator").getString()));
         return preview.isBlank()
                 ? Component.translatable("tooltip.lootbox.tag_preview.none", entry.tagId())
-                : Component.translatable("tooltip.lootbox.tag_preview", entry.tagId(), preview);
+                : Component.translatable(matchingStacks.size() >= 3
+                        ? "tooltip.lootbox.tag_preview.more"
+                        : "tooltip.lootbox.tag_preview", entry.tagId(), preview, matchingStacks.size());
     }
 
     private static boolean detailsRequested() {
