@@ -6,9 +6,11 @@ import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeType;
+import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -24,7 +26,6 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.IntStream;
 
 /** 可选 JEI 集成：以“输入一个箱子，输出所有可能奖励”的方式展示。 */
 @JeiPlugin
@@ -83,14 +84,9 @@ public final class LootBoxJeiPlugin implements IModPlugin {
 
     private static List<LootBoxJeiRecipe> buildRecipes() {
         return LootBoxManager.creativeDefinitions().stream()
-                .flatMap(definition -> {
-                    List<LootBoxDefinition.Entry> entries = definition.entries();
-                    int pageCount = Math.max(1, (entries.size() + 17) / 18);
-                    return IntStream.range(0, pageCount).mapToObj(page -> new LootBoxJeiRecipe(
-                            LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
-                            entries.subList(page * 18, Math.min((page + 1) * 18, entries.size())),
-                            LootBoxManager.jeiInfo(definition), entries));
-                })
+                .map(definition -> new LootBoxJeiRecipe(
+                        LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
+                        definition.entries(), LootBoxManager.jeiInfo(definition), definition.entries()))
                 .toList();
     }
 
@@ -112,12 +108,8 @@ public final class LootBoxJeiPlugin implements IModPlugin {
             builder.addInputSlot(6, 6)
                     .setStandardSlotBackground()
                     .addItemStack(recipe.box());
-            int index = 0;
             for (LootBoxDefinition.Entry entry : recipe.entries()) {
-                int row = index / 6;
-                int column = index % 6;
-                if (row >= 3) break;
-                var slot = builder.addOutputSlot(38 + column * 23, 6 + row * 23);
+                var slot = builder.addOutputSlot(0, 0);
                 if (entry.tagId() != null) {
                     slot.addItemStacks(entry.resolvedStacks().stream()
                             .map(stack -> stack.copyWithCount(entry.min())).toList());
@@ -137,8 +129,14 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                             : entry.conditionComponent();
                     tooltip.add(Component.translatable("jei.lootbox.condition", condition));
                 });
-                index++;
             }
+        }
+
+        @Override
+        public void createRecipeExtras(IRecipeExtrasBuilder builder, LootBoxJeiRecipe recipe, IFocusGroup focuses) {
+            builder.addScrollGridWidget(
+                    builder.getRecipeSlots().getSlots(RecipeIngredientRole.OUTPUT), 6, 3)
+                    .setPosition(38, 6);
         }
 
         @Override
