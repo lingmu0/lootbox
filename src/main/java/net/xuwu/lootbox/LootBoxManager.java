@@ -238,10 +238,11 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
             for (JsonElement element : GsonHelper.getAsJsonArray(root, "entries")) {
                 JsonObject json = element.getAsJsonObject();
                 List<ItemStack> stacks;
+                String tagId = null;
                 if (json.has("box")) {
                     stacks = List.of(LootBoxItem.createReferenceStack(GsonHelper.getAsString(json, "box")));
                 } else if (json.has("tag")) {
-                    String tagId = GsonHelper.getAsString(json, "tag");
+                    tagId = GsonHelper.getAsString(json, "tag");
                     if (tagId.startsWith("#")) tagId = tagId.substring(1);
                     TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(tagId));
                     HolderSet.Named<Item> taggedItems = BuiltInRegistries.ITEM.getTag(tag).orElse(null);
@@ -249,7 +250,7 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                         LootBoxMod.LOGGER.warn("Loot box {} references missing or empty item tag {}", id, tag);
                         continue;
                     }
-                    stacks = taggedItems.stream().map(holder -> new ItemStack(holder.value())).toList();
+                    stacks = List.of(new ItemStack(Items.BARRIER));
                 } else {
                     ResourceLocation itemId = new ResourceLocation(GsonHelper.getAsString(json, "item"));
                     Item item = BuiltInRegistries.ITEM.get(itemId);
@@ -292,11 +293,14 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                                 : Component.empty();
                     }
                 }
-                double itemWeight = weight / stacks.size();
-                double itemLuckWeight = luckWeight / stacks.size();
-                for (ItemStack stack : stacks) {
-                    entries.add(new LootBoxDefinition.Entry(stack, min, max, itemWeight, itemLuckWeight,
+                if (tagId != null) {
+                    entries.add(new LootBoxDefinition.Entry(tagId, min, max, weight, luckWeight,
                             condition, conditionText, luckMinimum));
+                } else {
+                    for (ItemStack stack : stacks) {
+                        entries.add(new LootBoxDefinition.Entry(stack, min, max, weight, luckWeight,
+                                condition, conditionText, luckMinimum));
+                    }
                 }
             }
         }

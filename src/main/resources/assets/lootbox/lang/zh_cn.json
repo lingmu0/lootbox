@@ -28,6 +28,7 @@
   "jei.lootbox.condition.none": "无",
   "jei.lootbox.info.mob_drop": "玩家击杀生物时有概率掉落",
   "jei.lootbox.info.drop_chance": "配置掉落概率：%s",
+  "jei.lootbox.tag_contents": "标签包含 %s 个可选物品",
   "config.lootbox.hide_default_boxes": "隐藏内置奖励箱",
   "config.lootbox.enable_mekanism_rewards": "启用 Mekanism 奖励",
   "config.lootbox.enable_create_rewards": "启用机械动力奖励",

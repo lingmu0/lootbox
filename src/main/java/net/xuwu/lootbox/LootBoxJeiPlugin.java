@@ -24,6 +24,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.IntStream;
 
 /** 可选 JEI 集成：以“输入一个箱子，输出所有可能奖励”的方式展示。 */
 @JeiPlugin
@@ -82,10 +83,14 @@ public final class LootBoxJeiPlugin implements IModPlugin {
 
     private static List<LootBoxJeiRecipe> buildRecipes() {
         return LootBoxManager.creativeDefinitions().stream()
-                .map(definition -> new LootBoxJeiRecipe(
-                        LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
-                        LootBoxDefinition.expandForDisplay(definition.entries()),
-                        LootBoxManager.jeiInfo(definition)))
+                .flatMap(definition -> {
+                    List<LootBoxDefinition.Entry> entries = definition.entries();
+                    int pageCount = Math.max(1, (entries.size() + 17) / 18);
+                    return IntStream.range(0, pageCount).mapToObj(page -> new LootBoxJeiRecipe(
+                            LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
+                            entries.subList(page * 18, Math.min((page + 1) * 18, entries.size())),
+                            LootBoxManager.jeiInfo(definition), entries));
+                })
                 .toList();
     }
 
@@ -112,9 +117,17 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                 int row = index / 6;
                 int column = index % 6;
                 if (row >= 3) break;
-                var slot = builder.addOutputSlot(38 + column * 23, 6 + row * 23)
-                        .addItemStack(entry.stack().copyWithCount(entry.min()));
+                var slot = builder.addOutputSlot(38 + column * 23, 6 + row * 23);
+                if (entry.tagId() != null) {
+                    slot.addItemStacks(entry.resolvedStacks().stream()
+                            .map(stack -> stack.copyWithCount(entry.min())).toList());
+                } else {
+                    slot.addItemStack(entry.stack().copyWithCount(entry.min()));
+                }
                 slot.addRichTooltipCallback((view, tooltip) -> {
+                    if (entry.tagId() != null) {
+                        tooltip.add(Component.translatable("jei.lootbox.tag_contents", entry.resolvedStacks().size()));
+                    }
                     tooltip.add(Component.translatable("jei.lootbox.quantity", quantityText(entry)));
                     tooltip.add(Component.translatable("jei.lootbox.weight", formatNumber(entry.weight())));
                     tooltip.add(Component.translatable("jei.lootbox.luck_weight", formatNumber(entry.luckWeight())));
@@ -173,7 +186,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         private static String formatProbability(LootBoxJeiRecipe recipe, LootBoxDefinition.Entry entry) {
             float luck = currentLuck();
             if (!availableAtLuck(entry, luck)) return "0.00%";
-            double total = recipe.entries().stream()
+            double total = recipe.probabilityEntries().stream()
                     .filter(candidate -> availableAtLuck(candidate, luck))
                     .mapToDouble(candidate -> effectiveWeight(candidate, luck))
                     .sum();

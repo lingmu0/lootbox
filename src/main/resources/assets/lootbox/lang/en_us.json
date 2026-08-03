@@ -28,6 +28,7 @@
   "jei.lootbox.condition.none": "None",
   "jei.lootbox.info.mob_drop": "Obtained when a player kills a mob",
   "jei.lootbox.info.drop_chance": "Configured drop chance: %s",
+  "jei.lootbox.tag_contents": "Tag contains %s possible items",
   "config.lootbox.hide_default_boxes": "Hide built-in loot boxes",
   "config.lootbox.enable_mekanism_rewards": "Enable Mekanism rewards",
   "config.lootbox.enable_create_rewards": "Enable Create rewards",
