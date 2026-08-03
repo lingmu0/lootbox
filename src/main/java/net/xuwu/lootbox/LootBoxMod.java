@@ -45,7 +45,8 @@ public class LootBoxMod {
             () -> new LootBoxItem(new Item.Properties().stacksTo(64)));
 
     public static final RegistryObject<LootBoxOpenerBlock> LOOT_BOX_OPENER = BLOCKS.register("loot_box_opener",
-            () -> new LootBoxOpenerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(2.5F)));
+            () -> new LootBoxOpenerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+                    .strength(2.5F).requiresCorrectToolForDrops()));
     public static final RegistryObject<BlockItem> LOOT_BOX_OPENER_ITEM = ITEMS.register("loot_box_opener",
             () -> new BlockItem(LOOT_BOX_OPENER.get(), new Item.Properties()));
 
