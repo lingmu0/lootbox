@@ -8,6 +8,8 @@
   "tooltip.lootbox.loot_box_rolls": "抽取次数：%s",
   "tooltip.lootbox.shift_for_details": "按住 Shift 查看详细奖励信息",
   "tooltip.lootbox.probability": "概率：%s",
+  "tooltip.lootbox.tag_preview": "#%s（示例：%s）",
+  "tooltip.lootbox.tag_preview.none": "#%s（没有匹配的物品）",
   "commands.lootbox.unknown_box": "未知战利品箱：%s",
   "commands.lootbox.give": "已给予 %s 个 %s 给 %s",
   "lootbox.box.common": "普通奖励箱",
