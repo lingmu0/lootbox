@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 /** 所有奖励箱共用的物品；箱子类型存储在 ItemStack NBT 中。 */
 public class LootBoxItem extends Item {
@@ -267,8 +268,8 @@ public class LootBoxItem extends Item {
         tooltip.add(Component.translatable("tooltip.lootbox.shift_for_details").withStyle(ChatFormatting.GRAY));
         if (!detailsRequested()) return;
         tooltip.add(Component.translatable("tooltip.lootbox.loot_box_rolls", definition.rolls()).withStyle(ChatFormatting.GRAY));
-        for (LootBoxDefinition.Entry entry : LootBoxDefinition.expandForDisplay(definition.entries())) {
-            var line = Component.literal("- ").append(entry.displayStack().getHoverName())
+        for (LootBoxDefinition.Entry entry : definition.entries()) {
+            var line = Component.literal("- ").append(rewardDisplayName(entry))
                     .append(" x" + entry.min() + (entry.max() == entry.min() ? "" : "-" + entry.max()))
                     .append("  ")
                     .append(Component.translatable("tooltip.lootbox.probability", probabilityText(definition, entry)));
@@ -277,6 +278,17 @@ public class LootBoxItem extends Item {
                 tooltip.add(Component.literal("  ").append(entry.conditionComponent()).withStyle(ChatFormatting.YELLOW));
             }
         }
+    }
+
+    private static Component rewardDisplayName(LootBoxDefinition.Entry entry) {
+        if (entry.tagId() == null) return entry.displayStack().getHoverName();
+        String preview = entry.resolvedStacks().stream()
+                .limit(2)
+                .map(stack -> stack.getHoverName().getString())
+                .collect(Collectors.joining(", "));
+        return preview.isBlank()
+                ? Component.translatable("tooltip.lootbox.tag_preview.none", entry.tagId())
+                : Component.translatable("tooltip.lootbox.tag_preview", entry.tagId(), preview);
     }
 
     private static boolean detailsRequested() {
