@@ -11,7 +11,7 @@
     "R": { "item": "minecraft:redstone" }
   },
   "result": {
-    "item": "lootbox:loot_box_opener",
+    "id": "lootbox:loot_box_opener",
     "count": 1
   }
 }

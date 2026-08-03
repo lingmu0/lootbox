@@ -46,7 +46,8 @@ public class LootBoxMod {
             () -> new LootBoxItem(new Item.Properties().stacksTo(64)));
 
     public static final DeferredBlock<LootBoxOpenerBlock> LOOT_BOX_OPENER = BLOCKS.register("loot_box_opener",
-            () -> new LootBoxOpenerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(2.5F)));
+            () -> new LootBoxOpenerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+                    .strength(2.5F).requiresCorrectToolForDrops()));
     public static final DeferredItem<BlockItem> LOOT_BOX_OPENER_ITEM = ITEMS.registerSimpleBlockItem("loot_box_opener", LOOT_BOX_OPENER);
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LootBoxOpenerBlockEntity>> LOOT_BOX_OPENER_ENTITY =

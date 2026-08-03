@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.Containers;
 import com.mojang.serialization.MapCodec;
 
 import javax.annotation.Nullable;
@@ -34,6 +35,15 @@ public class LootBoxOpenerBlock extends BaseEntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new LootBoxOpenerBlockEntity(pos, state);
+    }
+
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!state.is(newState.getBlock()) && !level.isClientSide()
+                && level.getBlockEntity(pos) instanceof LootBoxOpenerBlockEntity opener) {
+            Containers.dropContents(level, pos, opener);
+        }
+        super.onRemove(state, level, pos, newState, isMoving);
     }
 
     @Override
