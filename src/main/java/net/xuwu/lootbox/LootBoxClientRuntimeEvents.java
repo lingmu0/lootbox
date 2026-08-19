@@ -1,10 +1,10 @@
 package net.xuwu.lootbox;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 
@@ -12,27 +12,22 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 @OnlyIn(Dist.CLIENT)
 @EventBusSubscriber(modid = LootBoxMod.MODID, bus = EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class LootBoxClientRuntimeEvents {
-    private static long lastAppliedRevision = Long.MIN_VALUE;
-
     private LootBoxClientRuntimeEvents() {}
 
-    @SubscribeEvent
-    public static void clientTick(TickEvent.ClientTickEvent event) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null) {
-            if (minecraft.getConnection() == null) {
-                LootBoxManager.clearClientSync();
-                lastAppliedRevision = LootBoxManager.clientSyncRevision();
-            }
-            return;
-        }
-        long revision = LootBoxManager.clientSyncRevision();
-        if (revision == lastAppliedRevision) return;
-        lastAppliedRevision = revision;
+    /** Refreshes only the lootbox tab after a new server definition snapshot arrives. */
+    public static void refreshClientUi() {
         LootBoxJeiPlugin.refreshRuntimeRecipes();
-        if (minecraft.level != null) {
-            CreativeModeTabs.tryRebuildTabContents(minecraft.level.enabledFeatures(), true,
-                    minecraft.level.registryAccess());
-        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return;
+
+        CreativeModeTab.ItemDisplayParameters parameters = new CreativeModeTab.ItemDisplayParameters(
+                minecraft.level.enabledFeatures(), true, minecraft.level.registryAccess());
+        LootBoxMod.TAB.get().buildContents(parameters);
+    }
+
+    @SubscribeEvent
+    public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        LootBoxManager.clearClientSync();
     }
 }

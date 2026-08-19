@@ -2,7 +2,9 @@ package net.xuwu.lootbox;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 import java.util.function.Supplier;
 
@@ -23,7 +25,12 @@ public record LootBoxSyncPacket(CompoundTag data) {
 
     public static void handle(LootBoxSyncPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> LootBoxManager.applyClientSync(packet.data()));
+        context.enqueueWork(() -> {
+            LootBoxManager.applyClientSync(packet.data());
+            if (FMLEnvironment.dist == Dist.CLIENT) {
+                LootBoxClientRuntimeEvents.refreshClientUi();
+            }
+        });
         context.setPacketHandled(true);
     }
 }
