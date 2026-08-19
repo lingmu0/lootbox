@@ -12,12 +12,14 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
@@ -84,7 +86,12 @@ public class LootBoxMod {
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar("1").playToClient(LootBoxSyncPayload.TYPE, LootBoxSyncPayload.STREAM_CODEC,
-                (payload, context) -> context.enqueueWork(() -> LootBoxManager.applyClientSync(payload.data())));
+                (payload, context) -> context.enqueueWork(() -> {
+                    LootBoxManager.applyClientSync(payload.data());
+                    if (FMLEnvironment.dist == Dist.CLIENT) {
+                        LootBoxClientRuntimeEvents.refreshClientUi();
+                    }
+                }));
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
