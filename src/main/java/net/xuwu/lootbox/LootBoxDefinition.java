@@ -52,7 +52,10 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
     public static ItemStack summonDisplayStack(ResourceLocation summonEntity) {
         if (summonEntity == null) return ItemStack.EMPTY;
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).orElse(null);
-        SpawnEggItem egg = type == null ? null : ForgeSpawnEggItem.fromEntityType(type);
+        SpawnEggItem egg = type == null ? null : SpawnEggItem.byId(type);
+        if (egg == null && type != null) {
+            egg = ForgeSpawnEggItem.fromEntityType(type);
+        }
         return egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
     }
 
