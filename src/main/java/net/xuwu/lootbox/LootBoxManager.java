@@ -231,6 +231,7 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                 : root.has("jei_info")
                 ? List.of(Component.literal(GsonHelper.getAsString(root, "jei_info")))
                 : List.of();
+        ResourceLocation summonEntity = parseSummonEntity(id, root);
         int rolls = GsonHelper.getAsInt(root, "rolls", 1);
         int color = parseColor(root.get("color"));
         List<LootBoxDefinition.Entry> entries = new ArrayList<>();
@@ -305,7 +306,24 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
             }
         }
         if (isDefaultBox(id)) entries = LootBoxOptionalRewards.append(id.getPath(), entries);
-        return new LootBoxDefinition(id, name, rolls, entries, color, displayNameKey, jeiInfo);
+        return new LootBoxDefinition(id, name, rolls, entries, color, displayNameKey, jeiInfo, summonEntity);
+    }
+
+    private static ResourceLocation parseSummonEntity(ResourceLocation boxId, JsonObject root) {
+        if (!root.has("summon_entity")) return null;
+        try {
+            String value = GsonHelper.getAsString(root, "summon_entity").trim();
+            if (value.isBlank()) return null;
+            ResourceLocation entityId = ResourceLocation.parse(value);
+            if (BuiltInRegistries.ENTITY_TYPE.getOptional(entityId).isEmpty()) {
+                LootBoxMod.LOGGER.warn("Loot box {} references missing summon entity {}", boxId, entityId);
+                return null;
+            }
+            return entityId;
+        } catch (RuntimeException exception) {
+            LootBoxMod.LOGGER.warn("Loot box {} has an invalid summon_entity value", boxId, exception);
+            return null;
+        }
     }
 
     private static String formatPercentage(double chance) {

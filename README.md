@@ -9,6 +9,8 @@
 /lootbox give @s lootbox:rare 3
 ```
 
+手持一组战利品箱时按住 Shift 右键，会连续开启这一整组；每个箱子都在玩家当前位置执行奖励和召唤效果。
+
 内置等级从低到高为：
 
 `common` → `unusual` → `rare` → `epic` → `legendary` → `endurance`
@@ -28,6 +30,7 @@
   "display_name_key": "example.lootbox.name",
   "color": "#00E5FF",
   "rolls": 2,
+  "summon_entity": "minecraft:zombie",
   "jei_info_key": "example.lootbox.jei_info",
   "entries": [
     {
@@ -61,6 +64,7 @@
 | `display_name_key` | 字符串 | 箱子名称翻译键，推荐使用；也可以用 `display_name` 写直接文本。 |
 | `color` | `#RRGGBB`、`0xRRGGBB` 或整数 | 箱子贴图颜色，默认白色。 |
 | `rolls` | 整数 | 每次开箱抽取次数，默认 1。 |
+| `summon_entity` | 生物 ID | 开箱时在玩家当前位置召唤一个对应生物；没有对应生物蛋时，JEI 使用结构空位图标。 |
 | `jei_info_key` | 字符串 | JEI Info 翻译键；也可以用 `jei_info` 写直接文本。 |
 | `entries` | 数组 | 奖励条目。每项必须在 `item`、`tag`、`box` 中选择一个。 |
 
@@ -103,6 +107,8 @@ LootBoxApi.registerTranslated(
 )
 ```
 
+需要在开箱时召唤生物时，可以使用 `registerWithSummon` 或 `registerTranslatedWithSummon`，最后一个参数填写生物 ID，例如 `minecraft:zombie`。
+
 数据包字段与 KJS 方法的对应关系：
 
 | 数据包 | KJS | 说明 |
@@ -112,6 +118,7 @@ LootBoxApi.registerTranslated(
 | `item` | `entry` | 固定物品奖励。 |
 | `tag` | `entryTag` | 标签内物品等概率随机。 |
 | `box` | `entryBox` | 另一个箱子作为奖励。 |
+| `summon_entity` | `registerWithSummon` / `registerTranslatedWithSummon` | 开箱时召唤一个生物。 |
 | `jei_info_key` | `register(..., color, jeiInfoKey)` | JEI Info 翻译键。 |
 | `condition.display_key` | `entryWithConditionKey`、`entryTagWithConditionKey`、`entryBoxWithConditionKey` | 条件显示翻译键。 |
 | `min`、`max`、`weight`、`luck_weight` | 所有 `entry*` 方法 | 数量、权重和幸运权重。 |
@@ -155,6 +162,7 @@ LootBoxApi.registerTranslated(
 - 悬停奖励会显示数量、权重、幸运权重、当前幸运值下的最终概率和条件。
 - 不满足幸运条件的奖励与 tooltip 保持一致，显示 `0.00%`。
 - `jei_info_key` 或内置箱子的获取方式/掉落概率会显示在 JEI 条目下方，英文等长文本会自动换行。
+- 设置了 `summon_entity` 的箱子会在 JEI 中额外显示对应生物蛋；没有生物蛋的实体使用结构空位图标。
 
 ## 联机与重载
 
