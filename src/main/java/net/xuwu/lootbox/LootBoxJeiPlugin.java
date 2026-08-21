@@ -110,7 +110,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                     .setStandardSlotBackground()
                     .addItemStack(recipe.box());
             if (recipe.summonEntity() != null) {
-                builder.addSlot(RecipeIngredientRole.CATALYST, 155, 6)
+                builder.addSlot(RecipeIngredientRole.CATALYST, 6, 30)
                         .setStandardSlotBackground()
                         .addItemStack(LootBoxDefinition.summonDisplayStack(recipe.summonEntity()))
                         .addRichTooltipCallback((view, tooltip) -> tooltip.add(
