@@ -11,6 +11,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraftforge.common.ForgeSpawnEggItem;
 
 import java.util.List;
 
@@ -51,7 +52,7 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
     public static ItemStack summonDisplayStack(ResourceLocation summonEntity) {
         if (summonEntity == null) return ItemStack.EMPTY;
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).orElse(null);
-        SpawnEggItem egg = type == null ? null : SpawnEggItem.byId(type);
+        SpawnEggItem egg = type == null ? null : ForgeSpawnEggItem.fromEntityType(type);
         return egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
     }
 
