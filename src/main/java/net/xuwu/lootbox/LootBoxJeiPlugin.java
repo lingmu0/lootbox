@@ -86,7 +86,8 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         return LootBoxManager.creativeDefinitions().stream()
                 .map(definition -> new LootBoxJeiRecipe(
                         LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
-                        definition.entries(), LootBoxManager.jeiInfo(definition), definition.entries()))
+                        definition.entries(), LootBoxManager.jeiInfo(definition), definition.entries(),
+                        definition.summonEntity()))
                 .toList();
     }
 
@@ -108,6 +109,14 @@ public final class LootBoxJeiPlugin implements IModPlugin {
             builder.addInputSlot(6, 6)
                     .setStandardSlotBackground()
                     .addItemStack(recipe.box());
+            if (recipe.summonEntity() != null) {
+                builder.addSlot(RecipeIngredientRole.CATALYST, 155, 6)
+                        .setStandardSlotBackground()
+                        .addItemStack(LootBoxDefinition.summonDisplayStack(recipe.summonEntity()))
+                        .addRichTooltipCallback((view, tooltip) -> tooltip.add(
+                                Component.translatable("jei.lootbox.summon_entity",
+                                        LootBoxDefinition.summonDisplayName(recipe.summonEntity()))));
+            }
             for (LootBoxDefinition.Entry entry : recipe.entries()) {
                 var slot = builder.addOutputSlot(0, 0);
                 if (entry.tagId() != null) {

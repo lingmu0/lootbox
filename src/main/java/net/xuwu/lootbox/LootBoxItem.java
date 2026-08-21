@@ -10,6 +10,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -90,6 +92,9 @@ public class LootBoxItem extends Item {
         if (definition.displayNameKey() != null) snapshot.putString("name_key", definition.displayNameKey());
         snapshot.putInt("rolls", definition.rolls());
         snapshot.putInt("color", definition.color());
+        if (definition.summonEntity() != null) {
+            snapshot.putString("summon_entity", definition.summonEntity().toString());
+        }
         List<Component> info = definition.jeiInfo().isEmpty() && LootBoxManager.isDefaultBox(definition.id())
                 ? LootBoxManager.jeiInfo(definition) : definition.jeiInfo();
         ListTag jeiInfo = new ListTag();
@@ -173,8 +178,17 @@ public class LootBoxItem extends Item {
         for (Tag value : snapshot.getList("jei_info", Tag.TAG_COMPOUND)) {
             jeiInfo.add(componentFromTag((CompoundTag) value));
         }
+        ResourceLocation summonEntity = null;
+        if (snapshot.contains("summon_entity", Tag.TAG_STRING)) {
+            try {
+                summonEntity = new ResourceLocation(snapshot.getString("summon_entity"));
+            } catch (IllegalArgumentException ignored) {
+                // Keep older or externally-created snapshots safe when the id is malformed.
+            }
+        }
         return new LootBoxDefinition(id, name, snapshot.getInt("rolls"), entries,
-                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF, nameKey, jeiInfo);
+                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF, nameKey, jeiInfo,
+                summonEntity);
     }
 
     private static CompoundTag componentToTag(Component component) {
@@ -228,10 +242,31 @@ public class LootBoxItem extends Item {
     }
 
     public static boolean open(ItemStack box, LootBoxContext context, java.util.function.Consumer<ItemStack> output) {
+        LootBoxDefinition definition = getServerDefinition(box);
+        if (definition == null) return false;
         List<ItemStack> result = roll(box, context);
-        if (result.isEmpty()) return false;
         result.forEach(output);
-        return true;
+        boolean summoned = summon(definition, context);
+        return !result.isEmpty() || summoned;
+    }
+
+    private static boolean summon(LootBoxDefinition definition, LootBoxContext context) {
+        if (definition.summonEntity() == null || context.level() == null || context.player() == null) return false;
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(definition.summonEntity()).orElse(null);
+        if (type == null) {
+            LootBoxMod.LOGGER.warn("Unable to summon missing entity {} for loot box {}",
+                    definition.summonEntity(), definition.id());
+            return false;
+        }
+        Entity entity = type.create(context.level());
+        if (entity == null) {
+            LootBoxMod.LOGGER.warn("Unable to create entity {} for loot box {}",
+                    definition.summonEntity(), definition.id());
+            return false;
+        }
+        entity.moveTo(context.player().getX(), context.player().getY(), context.player().getZ(),
+                context.player().getYRot(), context.player().getXRot());
+        return context.level().addFreshEntity(entity);
     }
 
     @Override
@@ -247,14 +282,23 @@ public class LootBoxItem extends Item {
         if (level.isClientSide()) return InteractionResultHolder.success(stack);
         if (!(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)) return InteractionResultHolder.pass(stack);
         LootBoxContext context = new LootBoxContext(serverPlayer, level, serverPlayer.getLuck());
-        if (!open(stack, context, result -> {
-            if (!player.getInventory().add(result)) player.drop(result, false);
-        })) {
+        boolean batch = player.isShiftKeyDown();
+        int requested = batch ? stack.getCount() : 1;
+        int opened = 0;
+        for (int index = 0; index < requested && !stack.isEmpty(); index++) {
+            if (!open(stack, context, result -> {
+                if (!player.getInventory().add(result)) player.drop(result, false);
+            })) break;
+            stack.shrink(1);
+            opened++;
+        }
+        if (opened == 0) {
             player.displayClientMessage(Component.translatable("message.lootbox.loot_box_no_reward").withStyle(ChatFormatting.RED), true);
             return InteractionResultHolder.fail(stack);
         }
-        stack.shrink(1);
-        player.displayClientMessage(Component.translatable("message.lootbox.loot_box_opened"), true);
+        player.displayClientMessage(batch
+                ? Component.translatable("message.lootbox.loot_box_batch_opened", opened)
+                : Component.translatable("message.lootbox.loot_box_opened"), true);
         return InteractionResultHolder.success(stack);
     }
 

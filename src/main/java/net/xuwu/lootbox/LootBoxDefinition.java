@@ -6,26 +6,33 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SpawnEggItem;
 
 import java.util.List;
 
 /** 一个可被物品组件引用的奖励箱定义。 */
 public record LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries, int color,
-                                String displayNameKey, List<Component> jeiInfo) {
+                                String displayNameKey, List<Component> jeiInfo, ResourceLocation summonEntity) {
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries) {
-        this(id, displayName, rolls, entries, 0xFFFFFF, null, List.of());
+        this(id, displayName, rolls, entries, 0xFFFFFF, null, List.of(), null);
     }
 
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries, int color) {
-        this(id, displayName, rolls, entries, color, null, List.of());
+        this(id, displayName, rolls, entries, color, null, List.of(), null);
     }
 
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries,
                              int color, String displayNameKey) {
-        this(id, displayName, rolls, entries, color, displayNameKey, List.of());
+        this(id, displayName, rolls, entries, color, displayNameKey, List.of(), null);
+    }
+
+    public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries,
+                             int color, String displayNameKey, List<Component> jeiInfo) {
+        this(id, displayName, rolls, entries, color, displayNameKey, jeiInfo, null);
     }
 
     public LootBoxDefinition {
@@ -34,6 +41,28 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
         color &= 0xFFFFFF;
         displayNameKey = displayNameKey == null || displayNameKey.isBlank() ? null : displayNameKey;
         jeiInfo = jeiInfo == null ? List.of() : List.copyOf(jeiInfo);
+    }
+
+    /** Returns the spawn egg, or structure void when this entity has no registered egg. */
+    public ItemStack summonDisplayStack() {
+        return summonDisplayStack(summonEntity);
+    }
+
+    public static ItemStack summonDisplayStack(ResourceLocation summonEntity) {
+        if (summonEntity == null) return ItemStack.EMPTY;
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).orElse(null);
+        SpawnEggItem egg = type == null ? null : SpawnEggItem.byId(type);
+        return egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
+    }
+
+    public Component summonDisplayName() {
+        return summonDisplayName(summonEntity);
+    }
+
+    public static Component summonDisplayName(ResourceLocation summonEntity) {
+        if (summonEntity == null) return Component.empty();
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).orElse(null);
+        return type == null ? Component.literal(summonEntity.toString()) : type.getDescription();
     }
 
     public record Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
