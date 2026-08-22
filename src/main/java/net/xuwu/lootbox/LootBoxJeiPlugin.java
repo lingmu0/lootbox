@@ -34,6 +34,15 @@ public final class LootBoxJeiPlugin implements IModPlugin {
             RecipeType.create(LootBoxMod.MODID, "loot_box", LootBoxJeiRecipe.class);
     private static volatile IJeiRuntime RUNTIME;
     private static volatile List<LootBoxJeiRecipe> REGISTERED_RECIPES = List.of();
+    private static final IDrawable SUMMON_MARKER = new IDrawable() {
+        @Override public int getWidth() { return 2; }
+        @Override public int getHeight() { return 2; }
+
+        @Override
+        public void draw(GuiGraphics graphics, int xOffset, int yOffset) {
+            graphics.fill(xOffset, yOffset, xOffset + 2, yOffset + 2, 0xFFFFFFFF);
+        }
+    };
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -112,7 +121,8 @@ public final class LootBoxJeiPlugin implements IModPlugin {
                 var slot = builder.addOutputSlot(0, 0);
                 if (entry.summonEntity() != null) {
                     slot.addItemStack(LootBoxDefinition.summonDisplayStack(entry.summonEntity())
-                            .copyWithCount(entry.min()));
+                            .copyWithCount(entry.min()))
+                            .setOverlay(SUMMON_MARKER, 13, 13);
                 } else if (entry.tagId() != null) {
                     slot.addItemStacks(entry.resolvedStacks().stream()
                             .map(stack -> stack.copyWithCount(entry.min())).toList());

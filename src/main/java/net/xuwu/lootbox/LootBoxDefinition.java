@@ -47,7 +47,9 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
         if (egg == null && type != null) {
             egg = ForgeSpawnEggItem.fromEntityType(type);
         }
-        return egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
+        ItemStack display = egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
+        display.setHoverName(summonDisplayName(summonEntity));
+        return display;
     }
 
     public static Component summonDisplayName(ResourceLocation summonEntity) {
