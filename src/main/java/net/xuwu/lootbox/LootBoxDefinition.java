@@ -16,23 +16,18 @@ import java.util.List;
 
 /** 一个可被物品组件引用的奖励箱定义。 */
 public record LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries, int color,
-                                String displayNameKey, List<Component> jeiInfo, ResourceLocation summonEntity) {
+                                String displayNameKey, List<Component> jeiInfo) {
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries) {
-        this(id, displayName, rolls, entries, 0xFFFFFF, null, List.of(), null);
+        this(id, displayName, rolls, entries, 0xFFFFFF, null, List.of());
     }
 
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries, int color) {
-        this(id, displayName, rolls, entries, color, null, List.of(), null);
+        this(id, displayName, rolls, entries, color, null, List.of());
     }
 
     public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries,
                              int color, String displayNameKey) {
-        this(id, displayName, rolls, entries, color, displayNameKey, List.of(), null);
-    }
-
-    public LootBoxDefinition(ResourceLocation id, Component displayName, int rolls, List<Entry> entries,
-                             int color, String displayNameKey, List<Component> jeiInfo) {
-        this(id, displayName, rolls, entries, color, displayNameKey, jeiInfo, null);
+        this(id, displayName, rolls, entries, color, displayNameKey, List.of());
     }
 
     public LootBoxDefinition {
@@ -44,19 +39,11 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
     }
 
     /** Returns the spawn egg, or structure void when this entity has no registered egg. */
-    public ItemStack summonDisplayStack() {
-        return summonDisplayStack(summonEntity);
-    }
-
     public static ItemStack summonDisplayStack(ResourceLocation summonEntity) {
         if (summonEntity == null) return ItemStack.EMPTY;
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).orElse(null);
         SpawnEggItem egg = type == null ? null : SpawnEggItem.byId(type);
         return egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
-    }
-
-    public Component summonDisplayName() {
-        return summonDisplayName(summonEntity);
     }
 
     public static Component summonDisplayName(ResourceLocation summonEntity) {
@@ -65,32 +52,32 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
         return type == null ? Component.literal(summonEntity.toString()) : type.getDescription();
     }
 
-        public record Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
+    public record Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
                         LootBoxCondition condition, String conditionText, Component conditionComponent, Float luckMinimum,
-                        List<ItemStack> possibleStacks, String tagId) {
+                        List<ItemStack> possibleStacks, String tagId, ResourceLocation summonEntity) {
         public Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
                      LootBoxCondition condition, String conditionText) {
                     this(stack, min, max, weight, luckWeight, condition,
                     conditionText, conditionText == null || conditionText.isBlank() ? Component.empty() : Component.literal(conditionText), null,
-                    List.of(stack), null);
+                    List.of(stack), null, null);
         }
 
         public Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
                      LootBoxCondition condition, Component conditionText) {
             this(stack, min, max, weight, luckWeight, condition,
-                    conditionText == null ? "" : conditionText.getString(), conditionText, null, List.of(stack), null);
+                    conditionText == null ? "" : conditionText.getString(), conditionText, null, List.of(stack), null, null);
         }
 
         public Entry(ItemStack stack, int min, int max, double weight, double luckWeight,
                      LootBoxCondition condition, Component conditionText, Float luckMinimum) {
             this(stack, min, max, weight, luckWeight, condition,
-                    conditionText == null ? "" : conditionText.getString(), conditionText, luckMinimum, List.of(stack), null);
+                    conditionText == null ? "" : conditionText.getString(), conditionText, luckMinimum, List.of(stack), null, null);
         }
 
         public Entry(List<ItemStack> possibleStacks, int min, int max, double weight, double luckWeight,
                      LootBoxCondition condition, Component conditionText, Float luckMinimum) {
             this(possibleStacks.get(0), min, max, weight, luckWeight, condition,
-                    conditionText == null ? "" : conditionText.getString(), conditionText, luckMinimum, possibleStacks, null);
+                    conditionText == null ? "" : conditionText.getString(), conditionText, luckMinimum, possibleStacks, null, null);
         }
 
         /** Creates an entry that resolves an item tag when the entry is used, not when KJS is evaluated. */
@@ -103,7 +90,15 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
                      LootBoxCondition condition, Component conditionText, Float luckMinimum) {
             this(new ItemStack(Items.BARRIER), min, max, weight, luckWeight, condition,
                     conditionText == null ? "" : conditionText.getString(), conditionText, luckMinimum,
-                    List.of(new ItemStack(Items.BARRIER)), normalizeTagId(tagId));
+                    List.of(new ItemStack(Items.BARRIER)), normalizeTagId(tagId), null);
+        }
+
+        /** Creates an entry that summons the selected entity instead of giving an item. */
+        public Entry(ResourceLocation summonEntity, int min, int max, double weight, double luckWeight,
+                     LootBoxCondition condition, Component conditionText, Float luckMinimum) {
+            this(ItemStack.EMPTY, min, max, weight, luckWeight, condition,
+                    conditionText == null ? "" : conditionText.getString(), conditionText, luckMinimum,
+                    List.of(), null, summonEntity);
         }
 
         public Entry {
@@ -113,7 +108,8 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
             luckWeight = Math.max(0, luckWeight);
             conditionText = conditionText == null ? "" : conditionText;
             conditionComponent = conditionComponent == null ? Component.empty() : conditionComponent;
-            possibleStacks = possibleStacks == null || possibleStacks.isEmpty()
+            possibleStacks = summonEntity != null ? List.of()
+                    : possibleStacks == null || possibleStacks.isEmpty()
                     ? List.of(stack.copy())
                     : possibleStacks.stream().map(ItemStack::copy).toList();
             tagId = normalizeTagId(tagId);
@@ -121,6 +117,7 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
 
         /** Resolves the current tag contents; normal item and box entries simply return their stored stacks. */
         public List<ItemStack> resolvedStacks() {
+            if (summonEntity != null) return List.of();
             if (tagId == null) return possibleStacks;
             TagKey<Item> tag = TagKey.create(Registries.ITEM, ResourceLocation.parse(tagId));
             HolderSet.Named<Item> taggedItems = BuiltInRegistries.ITEM.getTag(tag).orElse(null);
@@ -131,14 +128,20 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
         }
 
         public ItemStack displayStack() {
+            if (summonEntity != null) return summonDisplayStack(summonEntity);
             return resolvedStacks().get(0).copy();
         }
 
         public ItemStack createStack(java.util.Random random) {
+            if (summonEntity != null) return ItemStack.EMPTY;
             List<ItemStack> stacks = resolvedStacks();
             ItemStack result = stacks.get(random.nextInt(stacks.size())).copy();
             result.setCount(min == max ? min : min + random.nextInt(max - min + 1));
             return result;
+        }
+
+        public int randomCount(java.util.Random random) {
+            return min == max ? min : min + random.nextInt(max - min + 1);
         }
 
         private static String normalizeTagId(String id) {

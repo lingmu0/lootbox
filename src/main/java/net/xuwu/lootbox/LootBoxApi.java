@@ -86,70 +86,16 @@ public final class LootBoxApi {
         registerDefinition(location, Component.translatable(displayNameKey), displayNameKey, rolls, entries, color, jeiInfoKey);
     }
 
-    /** Registers a literal-name box that summons one entity when opened. */
-    public static void registerWithSummon(String id, String displayName, int rolls,
-                                          List<LootBoxDefinition.Entry> entries, int color,
-                                          String summonEntityId) {
-        register(id, displayName, rolls, entries, color, null, summonEntityId);
-    }
-
-    /** Registers a literal-name box with JEI info and one summon entity. */
-    public static void register(String id, String displayName, int rolls,
-                                List<LootBoxDefinition.Entry> entries, int color,
-                                String jeiInfoKey, String summonEntityId) {
-        ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
-        registerDefinition(location, Component.literal(displayName), null, rolls, entries, color,
-                jeiInfoKey, summonEntityId);
-    }
-
-    /** Registers a translated-name box that summons one entity when opened. */
-    public static void registerTranslatedWithSummon(String id, String displayNameKey, int rolls,
-                                                    List<LootBoxDefinition.Entry> entries, int color,
-                                                    String summonEntityId) {
-        registerTranslated(id, displayNameKey, rolls, entries, color, null, summonEntityId);
-    }
-
-    /** Registers a translated-name box with JEI info and one summon entity. */
-    public static void registerTranslated(String id, String displayNameKey, int rolls,
-                                          List<LootBoxDefinition.Entry> entries, int color,
-                                          String jeiInfoKey, String summonEntityId) {
-        ResourceLocation location = ResourceLocation.parse(id.contains(":") ? id : LootBoxMod.MODID + ":" + id);
-        registerDefinition(location, Component.translatable(displayNameKey), displayNameKey, rolls, entries, color,
-                jeiInfoKey, summonEntityId);
-    }
-
     private static void registerDefinition(ResourceLocation location, Component displayName, String displayNameKey,
                                             int rolls, List<LootBoxDefinition.Entry> entries, int color,
                                             String jeiInfoKey) {
-        registerDefinition(location, displayName, displayNameKey, rolls, entries, color, jeiInfoKey, null);
-    }
-
-    private static void registerDefinition(ResourceLocation location, Component displayName, String displayNameKey,
-                                           int rolls, List<LootBoxDefinition.Entry> entries, int color,
-                                           String jeiInfoKey, String summonEntityId) {
         List<LootBoxDefinition.Entry> finalEntries = LootBoxManager.isDefaultBox(location)
                 ? LootBoxOptionalRewards.append(location.getPath(), entries)
                 : List.copyOf(entries);
         List<Component> jeiInfo = jeiInfoKey == null || jeiInfoKey.isBlank()
                 ? List.of() : List.of(Component.translatable(jeiInfoKey));
-        ResourceLocation summonEntity = parseSummonEntity(summonEntityId);
         SCRIPT_DEFINITIONS.put(location, new LootBoxDefinition(location, displayName, rolls, finalEntries, color,
-                displayNameKey, jeiInfo, summonEntity));
-    }
-
-    private static ResourceLocation parseSummonEntity(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            ResourceLocation id = ResourceLocation.parse(value);
-            if (BuiltInRegistries.ENTITY_TYPE.getOptional(id).isEmpty()) {
-                LootBoxMod.LOGGER.warn("Ignoring missing summon entity {} in scripted loot box", id);
-                return null;
-            }
-            return id;
-        } catch (IllegalArgumentException exception) {
-            LootBoxMod.LOGGER.warn("Ignoring invalid summon entity {} in scripted loot box", value, exception);
-            return null;
-        }
+                displayNameKey, jeiInfo));
     }
 
     public static LootBoxDefinition getDefinition(ResourceLocation id) {
@@ -233,6 +179,21 @@ public final class LootBoxApi {
         String normalizedTagId = tagId != null && tagId.startsWith("#") ? tagId.substring(1) : tagId;
         return new LootBoxDefinition.Entry(normalizedTagId, min, max, weight, luckWeight,
                 resolveCondition(conditionId), Component.translatable(conditionKey));
+    }
+
+    /** Creates an entity-summoning reward entry, matching the data-pack summon_entity entry. */
+    public static LootBoxDefinition.Entry entrySummon(String entityId, int min, int max, double weight,
+                                                       double luckWeight, String conditionId, String conditionText) {
+        return new LootBoxDefinition.Entry(ResourceLocation.parse(entityId), min, max, weight, luckWeight,
+                resolveCondition(conditionId), literalConditionText(conditionText), null);
+    }
+
+    /** Entity-summoning reward whose condition description is a translation key. */
+    public static LootBoxDefinition.Entry entrySummonWithConditionKey(String entityId, int min, int max,
+                                                                        double weight, double luckWeight,
+                                                                        String conditionId, String conditionKey) {
+        return new LootBoxDefinition.Entry(ResourceLocation.parse(entityId), min, max, weight, luckWeight,
+                resolveCondition(conditionId), Component.translatable(conditionKey), null);
     }
 
     public static List<LootBoxDefinition.Entry> entries(LootBoxDefinition.Entry... entries) {
