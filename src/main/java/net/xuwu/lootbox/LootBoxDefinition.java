@@ -1,6 +1,7 @@
 package net.xuwu.lootbox;
 
 import net.minecraft.core.HolderSet;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -43,7 +44,9 @@ public record LootBoxDefinition(ResourceLocation id, Component displayName, int 
         if (summonEntity == null) return ItemStack.EMPTY;
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).orElse(null);
         SpawnEggItem egg = type == null ? null : SpawnEggItem.byId(type);
-        return egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
+        ItemStack display = egg == null ? new ItemStack(Items.STRUCTURE_VOID) : new ItemStack(egg);
+        display.set(DataComponents.CUSTOM_NAME, summonDisplayName(summonEntity));
+        return display;
     }
 
     public static Component summonDisplayName(ResourceLocation summonEntity) {
