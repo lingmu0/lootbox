@@ -7,6 +7,7 @@
   "message.lootbox.loot_box_batch_opened": "Opened %s loot boxes",
   "tooltip.lootbox.loot_box_unknown": "Unloaded loot box definition",
   "tooltip.lootbox.loot_box_rolls": "Rolls: %s",
+  "tooltip.lootbox.summon_entity": "Summon entity: %s",
   "tooltip.lootbox.shift_for_details": "Hold Shift for detailed rewards",
   "tooltip.lootbox.probability": "Chance: %s",
   "tooltip.lootbox.tag_preview": "#%s (%s, %s items total)",

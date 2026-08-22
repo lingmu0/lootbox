@@ -92,9 +92,6 @@ public class LootBoxItem extends Item {
         if (definition.displayNameKey() != null) snapshot.putString("name_key", definition.displayNameKey());
         snapshot.putInt("rolls", definition.rolls());
         snapshot.putInt("color", definition.color());
-        if (definition.summonEntity() != null) {
-            snapshot.putString("summon_entity", definition.summonEntity().toString());
-        }
         List<Component> info = definition.jeiInfo().isEmpty() && LootBoxManager.isDefaultBox(definition.id())
                 ? LootBoxManager.jeiInfo(definition) : definition.jeiInfo();
         ListTag jeiInfo = new ListTag();
@@ -103,7 +100,9 @@ public class LootBoxItem extends Item {
         ListTag entries = new ListTag();
         for (LootBoxDefinition.Entry entry : definition.entries()) {
             CompoundTag json = new CompoundTag();
-            if (entry.tagId() != null) {
+            if (entry.summonEntity() != null) {
+                json.putString("summon_entity", entry.summonEntity().toString());
+            } else if (entry.tagId() != null) {
                 json.putString("tag", entry.tagId());
             } else if (entry.stack().getItem() instanceof LootBoxItem) {
                 json.putString("box", getDefinitionId(entry.stack()).toString());
@@ -138,7 +137,15 @@ public class LootBoxItem extends Item {
             CompoundTag entry = (CompoundTag) value;
             List<ItemStack> stacks = new ArrayList<>();
             String tagId = null;
-            if (entry.contains("tag", Tag.TAG_STRING)) {
+            ResourceLocation summonEntity = null;
+            if (entry.contains("summon_entity", Tag.TAG_STRING)) {
+                try {
+                    summonEntity = new ResourceLocation(entry.getString("summon_entity"));
+                    if (BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).isEmpty()) continue;
+                } catch (IllegalArgumentException ignored) {
+                    continue;
+                }
+            } else if (entry.contains("tag", Tag.TAG_STRING)) {
                 tagId = entry.getString("tag");
             } else if (entry.contains("box", Tag.TAG_STRING)) {
                 stacks.add(createReferenceStack(entry.getString("box")));
@@ -162,13 +169,19 @@ public class LootBoxItem extends Item {
                     ? Component.empty()
                     : Component.literal(entry.getString("condition"));
             Float luckMinimum = entry.contains("luck_minimum", Tag.TAG_FLOAT) ? entry.getFloat("luck_minimum") : null;
-            entries.add(tagId == null
-                    ? new LootBoxDefinition.Entry(stacks, entry.getInt("min"), entry.getInt("max"),
-                    entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
-                    conditionText, luckMinimum)
-                    : new LootBoxDefinition.Entry(tagId, entry.getInt("min"), entry.getInt("max"),
-                    entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
-                    conditionText, luckMinimum));
+            if (summonEntity != null) {
+                entries.add(new LootBoxDefinition.Entry(summonEntity, entry.getInt("min"), entry.getInt("max"),
+                        entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
+                        conditionText, luckMinimum));
+            } else if (tagId == null) {
+                entries.add(new LootBoxDefinition.Entry(stacks, entry.getInt("min"), entry.getInt("max"),
+                        entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
+                        conditionText, luckMinimum));
+            } else {
+                entries.add(new LootBoxDefinition.Entry(tagId, entry.getInt("min"), entry.getInt("max"),
+                        entry.getDouble("weight"), entry.getDouble("luck_weight"), context -> true,
+                        conditionText, luckMinimum));
+            }
         }
         String nameKey = snapshot.contains("name_key", Tag.TAG_STRING) ? snapshot.getString("name_key") : null;
         Component name = nameKey == null
@@ -178,17 +191,8 @@ public class LootBoxItem extends Item {
         for (Tag value : snapshot.getList("jei_info", Tag.TAG_COMPOUND)) {
             jeiInfo.add(componentFromTag((CompoundTag) value));
         }
-        ResourceLocation summonEntity = null;
-        if (snapshot.contains("summon_entity", Tag.TAG_STRING)) {
-            try {
-                summonEntity = new ResourceLocation(snapshot.getString("summon_entity"));
-            } catch (IllegalArgumentException ignored) {
-                // Keep older or externally-created snapshots safe when the id is malformed.
-            }
-        }
         return new LootBoxDefinition(id, name, snapshot.getInt("rolls"), entries,
-                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF, nameKey, jeiInfo,
-                summonEntity);
+                snapshot.contains("color", Tag.TAG_INT) ? snapshot.getInt("color") : 0xFFFFFF, nameKey, jeiInfo);
     }
 
     private static CompoundTag componentToTag(Component component) {
@@ -219,12 +223,23 @@ public class LootBoxItem extends Item {
     public static List<ItemStack> roll(ItemStack box, LootBoxContext context) {
         LootBoxDefinition definition = getServerDefinition(box);
         if (definition == null) return List.of();
+        List<ItemStack> result = new ArrayList<>();
+        for (LootBoxDefinition.Entry entry : rollEntries(definition, context)) {
+            if (entry.summonEntity() == null) {
+                ItemStack stack = entry.createStack(RANDOM);
+                if (!stack.isEmpty()) result.add(stack);
+            }
+        }
+        return result;
+    }
+
+    private static List<LootBoxDefinition.Entry> rollEntries(LootBoxDefinition definition, LootBoxContext context) {
         List<LootBoxDefinition.Entry> eligible = new ArrayList<>();
         for (LootBoxDefinition.Entry entry : definition.entries()) {
             if (entry.condition().test(context)) eligible.add(entry);
         }
         if (eligible.isEmpty()) return List.of();
-        List<ItemStack> result = new ArrayList<>();
+        List<LootBoxDefinition.Entry> result = new ArrayList<>();
         for (int roll = 0; roll < definition.rolls(); roll++) {
             double total = eligible.stream().mapToDouble(entry ->
                     Math.max(0.0D, entry.weight() + context.luck() * entry.luckWeight())).sum();
@@ -233,7 +248,7 @@ public class LootBoxItem extends Item {
             for (LootBoxDefinition.Entry entry : eligible) {
                 selected -= Math.max(0.0D, entry.weight() + context.luck() * entry.luckWeight());
                 if (selected <= 0.0D) {
-                    result.add(entry.createStack(RANDOM));
+                    result.add(entry);
                     break;
                 }
             }
@@ -244,24 +259,35 @@ public class LootBoxItem extends Item {
     public static boolean open(ItemStack box, LootBoxContext context, java.util.function.Consumer<ItemStack> output) {
         LootBoxDefinition definition = getServerDefinition(box);
         if (definition == null) return false;
-        List<ItemStack> result = roll(box, context);
-        result.forEach(output);
-        boolean summoned = summon(definition, context);
-        return !result.isEmpty() || summoned;
+        boolean opened = false;
+        for (LootBoxDefinition.Entry entry : rollEntries(definition, context)) {
+            if (entry.summonEntity() != null) {
+                for (int count = 0; count < entry.randomCount(RANDOM); count++) {
+                    opened |= summon(entry.summonEntity(), context, definition.id());
+                }
+            } else {
+                ItemStack result = entry.createStack(RANDOM);
+                if (!result.isEmpty()) {
+                    output.accept(result);
+                    opened = true;
+                }
+            }
+        }
+        return opened;
     }
 
-    private static boolean summon(LootBoxDefinition definition, LootBoxContext context) {
-        if (definition.summonEntity() == null || context.level() == null || context.player() == null) return false;
-        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(definition.summonEntity()).orElse(null);
+    private static boolean summon(ResourceLocation summonEntity, LootBoxContext context, ResourceLocation boxId) {
+        if (summonEntity == null || context.level() == null || context.player() == null) return false;
+        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(summonEntity).orElse(null);
         if (type == null) {
             LootBoxMod.LOGGER.warn("Unable to summon missing entity {} for loot box {}",
-                    definition.summonEntity(), definition.id());
+                    summonEntity, boxId);
             return false;
         }
         Entity entity = type.create(context.level());
         if (entity == null) {
             LootBoxMod.LOGGER.warn("Unable to create entity {} for loot box {}",
-                    definition.summonEntity(), definition.id());
+                    summonEntity, boxId);
             return false;
         }
         entity.moveTo(context.player().getX(), context.player().getY(), context.player().getZ(),
@@ -325,6 +351,10 @@ public class LootBoxItem extends Item {
     }
 
     private static Component rewardDisplayName(LootBoxDefinition.Entry entry) {
+        if (entry.summonEntity() != null) {
+            return Component.translatable("tooltip.lootbox.summon_entity",
+                    LootBoxDefinition.summonDisplayName(entry.summonEntity()));
+        }
         if (entry.tagId() == null) return entry.displayStack().getHoverName();
         var matchingStacks = entry.resolvedStacks();
         String preview = matchingStacks.stream()

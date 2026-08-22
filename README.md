@@ -30,7 +30,6 @@
   "display_name_key": "example.lootbox.name",
   "color": "#00E5FF",
   "rolls": 2,
-  "summon_entity": "minecraft:zombie",
   "jei_info_key": "example.lootbox.jei_info",
   "entries": [
     {
@@ -46,6 +45,12 @@
       "min": 1,
       "max": 1,
       "weight": 5
+    },
+    {
+      "summon_entity": "minecraft:zombie",
+      "min": 1,
+      "max": 1,
+      "weight": 2
     },
     {
       "box": "lootbox:rare",
@@ -64,15 +69,15 @@
 | `display_name_key` | 字符串 | 箱子名称翻译键，推荐使用；也可以用 `display_name` 写直接文本。 |
 | `color` | `#RRGGBB`、`0xRRGGBB` 或整数 | 箱子贴图颜色，默认白色。 |
 | `rolls` | 整数 | 每次开箱抽取次数，默认 1。 |
-| `summon_entity` | 生物 ID | 开箱时在玩家当前位置召唤一个对应生物；没有对应生物蛋时，JEI 使用结构空位图标。 |
 | `jei_info_key` | 字符串 | JEI Info 翻译键；也可以用 `jei_info` 写直接文本。 |
-| `entries` | 数组 | 奖励条目。每项必须在 `item`、`tag`、`box` 中选择一个。 |
+| `entries` | 数组 | 奖励条目。每项必须在 `item`、`tag`、`box`、`summon_entity` 中选择一个。 |
 
 奖励条目还支持：
 
 - `item`：固定物品 ID。
 - `tag`：物品标签 ID。标签内的物品等概率随机选择，但该条目的总权重不变；标签会在标签刷新后重新解析。JEI 中会把同一标签的物品浓缩在一个输出槽内轮换显示。
 - `box`：另一个战利品箱的 ID。
+- `summon_entity`：生物 ID。该条目被抽中时，在玩家当前位置召唤 `min` 至 `max` 只生物；没有对应生物蛋时，JEI 使用结构空位图标。
 - `min`、`max`：数量范围。
 - `weight`：基础权重。
 - `luck_weight`：最终权重为 `weight + 玩家幸运 × luck_weight`。
@@ -100,6 +105,7 @@ LootBoxApi.registerTranslated(
   LootBoxApi.entries(
     LootBoxApi.entry('minecraft:diamond', 1, 2, 10, 2, 'has_vip_tag', ''),
     LootBoxApi.entryTag('minecraft:music_discs', 1, 1, 5, 0, '', ''),
+    LootBoxApi.entrySummon('minecraft:zombie', 1, 1, 2, 0, '', ''),
     LootBoxApi.entryBox('lootbox:rare', 1, 1, 1, 0, '', '')
   ),
   0x00E5FF,
@@ -107,7 +113,7 @@ LootBoxApi.registerTranslated(
 )
 ```
 
-需要在开箱时召唤生物时，可以使用 `registerWithSummon` 或 `registerTranslatedWithSummon`，最后一个参数填写生物 ID，例如 `minecraft:zombie`。
+召唤生物与其他奖励一样使用 `entrySummon` 或 `entrySummonWithConditionKey`，例如 `minecraft:zombie`。
 
 数据包字段与 KJS 方法的对应关系：
 
@@ -118,7 +124,7 @@ LootBoxApi.registerTranslated(
 | `item` | `entry` | 固定物品奖励。 |
 | `tag` | `entryTag` | 标签内物品等概率随机。 |
 | `box` | `entryBox` | 另一个箱子作为奖励。 |
-| `summon_entity` | `registerWithSummon` / `registerTranslatedWithSummon` | 开箱时召唤一个生物。 |
+| `summon_entity` | `entrySummon` / `entrySummonWithConditionKey` | 被抽中时召唤对应生物。 |
 | `jei_info_key` | `register(..., color, jeiInfoKey)` | JEI Info 翻译键。 |
 | `condition.display_key` | `entryWithConditionKey`、`entryTagWithConditionKey`、`entryBoxWithConditionKey` | 条件显示翻译键。 |
 | `min`、`max`、`weight`、`luck_weight` | 所有 `entry*` 方法 | 数量、权重和幸运权重。 |
@@ -162,7 +168,7 @@ LootBoxApi.registerTranslated(
 - 悬停奖励会显示数量、权重、幸运权重、当前幸运值下的最终概率和条件。
 - 不满足幸运条件的奖励与 tooltip 保持一致，显示 `0.00%`。
 - `jei_info_key` 或内置箱子的获取方式/掉落概率会显示在 JEI 条目下方，英文等长文本会自动换行。
-- 设置了 `summon_entity` 的箱子会在 JEI 中额外显示对应生物蛋；没有生物蛋的实体使用结构空位图标。
+- `summon_entity` 条目会和其他奖励一起显示在 JEI 输出网格中；有生物蛋时显示对应生物蛋，没有生物蛋时使用结构空位图标。
 
 ## 联机与重载
 

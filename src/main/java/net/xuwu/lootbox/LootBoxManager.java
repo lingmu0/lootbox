@@ -231,7 +231,6 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                 : root.has("jei_info")
                 ? List.of(Component.literal(GsonHelper.getAsString(root, "jei_info")))
                 : List.of();
-        ResourceLocation summonEntity = parseSummonEntity(id, root);
         int rolls = GsonHelper.getAsInt(root, "rolls", 1);
         int color = parseColor(root.get("color"));
         List<LootBoxDefinition.Entry> entries = new ArrayList<>();
@@ -240,7 +239,12 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                 JsonObject json = element.getAsJsonObject();
                 List<ItemStack> stacks;
                 String tagId = null;
-                if (json.has("box")) {
+                ResourceLocation summonEntity = json.has("summon_entity")
+                        ? parseSummonEntity(id, json) : null;
+                if (json.has("summon_entity")) {
+                    if (summonEntity == null) continue;
+                    stacks = List.of();
+                } else if (json.has("box")) {
                     stacks = List.of(LootBoxItem.createReferenceStack(GsonHelper.getAsString(json, "box")));
                 } else if (json.has("tag")) {
                     tagId = GsonHelper.getAsString(json, "tag");
@@ -294,7 +298,10 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
                                 : Component.empty();
                     }
                 }
-                if (tagId != null) {
+                if (summonEntity != null) {
+                    entries.add(new LootBoxDefinition.Entry(summonEntity, min, max, weight, luckWeight,
+                            condition, conditionText, luckMinimum));
+                } else if (tagId != null) {
                     entries.add(new LootBoxDefinition.Entry(tagId, min, max, weight, luckWeight,
                             condition, conditionText, luckMinimum));
                 } else {
@@ -306,13 +313,12 @@ public final class LootBoxManager extends SimpleJsonResourceReloadListener {
             }
         }
         if (isDefaultBox(id)) entries = LootBoxOptionalRewards.append(id.getPath(), entries);
-        return new LootBoxDefinition(id, name, rolls, entries, color, displayNameKey, jeiInfo, summonEntity);
+        return new LootBoxDefinition(id, name, rolls, entries, color, displayNameKey, jeiInfo);
     }
 
-    private static ResourceLocation parseSummonEntity(ResourceLocation boxId, JsonObject root) {
-        if (!root.has("summon_entity")) return null;
+    private static ResourceLocation parseSummonEntity(ResourceLocation boxId, JsonObject entry) {
         try {
-            String value = GsonHelper.getAsString(root, "summon_entity").trim();
+            String value = GsonHelper.getAsString(entry, "summon_entity").trim();
             if (value.isBlank()) return null;
             ResourceLocation entityId = new ResourceLocation(value);
             if (BuiltInRegistries.ENTITY_TYPE.getOptional(entityId).isEmpty()) {

@@ -86,8 +86,7 @@ public final class LootBoxJeiPlugin implements IModPlugin {
         return LootBoxManager.creativeDefinitions().stream()
                 .map(definition -> new LootBoxJeiRecipe(
                         LootBoxItem.createStack(definition.id().toString()), definition.rolls(),
-                        definition.entries(), LootBoxManager.jeiInfo(definition), definition.entries(),
-                        definition.summonEntity()))
+                        definition.entries(), LootBoxManager.jeiInfo(definition), definition.entries()))
                 .toList();
     }
 
@@ -109,24 +108,22 @@ public final class LootBoxJeiPlugin implements IModPlugin {
             builder.addInputSlot(6, 6)
                     .setStandardSlotBackground()
                     .addItemStack(recipe.box());
-            if (recipe.summonEntity() != null) {
-                builder.addSlot(RecipeIngredientRole.CATALYST, 6, 30)
-                        .setStandardSlotBackground()
-                        .addItemStack(LootBoxDefinition.summonDisplayStack(recipe.summonEntity()))
-                        .addRichTooltipCallback((view, tooltip) -> tooltip.add(
-                                Component.translatable("jei.lootbox.summon_entity",
-                                        LootBoxDefinition.summonDisplayName(recipe.summonEntity()))));
-            }
             for (LootBoxDefinition.Entry entry : recipe.entries()) {
                 var slot = builder.addOutputSlot(0, 0);
-                if (entry.tagId() != null) {
+                if (entry.summonEntity() != null) {
+                    slot.addItemStack(LootBoxDefinition.summonDisplayStack(entry.summonEntity())
+                            .copyWithCount(entry.min()));
+                } else if (entry.tagId() != null) {
                     slot.addItemStacks(entry.resolvedStacks().stream()
                             .map(stack -> stack.copyWithCount(entry.min())).toList());
                 } else {
                     slot.addItemStack(entry.stack().copyWithCount(entry.min()));
                 }
                 slot.addRichTooltipCallback((view, tooltip) -> {
-                    if (entry.tagId() != null) {
+                    if (entry.summonEntity() != null) {
+                        tooltip.add(Component.translatable("jei.lootbox.summon_entity",
+                                LootBoxDefinition.summonDisplayName(entry.summonEntity())));
+                    } else if (entry.tagId() != null) {
                         tooltip.add(Component.translatable("jei.lootbox.tag_contents", entry.resolvedStacks().size()));
                     }
                     tooltip.add(Component.translatable("jei.lootbox.quantity", quantityText(entry)));
